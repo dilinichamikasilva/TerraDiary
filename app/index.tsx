@@ -1,8 +1,28 @@
 import { Redirect } from "expo-router";
-import { useAuth } from "../hooks/useAuth"; // Optional: if you make a hook later
 import { auth } from "../firebaseConfig";
+import { View, ActivityIndicator } from "react-native";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged , User } from "firebase/auth";
 
 export default function Index() {
-  // If user is already logged in, go to map. Otherwise, go to login.
-  return auth.currentUser ? <Redirect href="/(tabs)/map" /> : <Redirect href="/(auth)/login" />;
+  const [initializing, setInitializing] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setInitializing(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  if (initializing) {
+    return (
+      <View className="flex-1 bg-slate-950 justify-center items-center">
+        <ActivityIndicator size="large" color="#10b981" />
+      </View>
+    );
+  }
+
+  return user ? <Redirect href="/(tabs)/map" /> : <Redirect href="/(auth)/login" />;
 }
