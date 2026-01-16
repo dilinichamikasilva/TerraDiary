@@ -2,6 +2,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "../firebaseConfig";
+import Toast from 'react-native-toast-message';
 import "../global.css";
 
 export default function RootLayout() {
@@ -30,9 +31,15 @@ export default function RootLayout() {
   }, [user, segments]);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+      
+      <Toast />
+    </>
+    
   );
 }
