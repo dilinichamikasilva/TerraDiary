@@ -38,25 +38,25 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     const { firstName, lastName, country, email, password, confirmPassword } = formData;
 
-    // 1. Validation: Empty fields
+    
     if (!firstName || !lastName || !country || !email || !password || !confirmPassword) {
       Toast.show({ type: 'error', text1: 'Missing Fields', text2: 'Please fill in all fields ✍️' });
       return;
     }
 
-    // 2. Validation: Email format
+    
     if (!validateEmail(email.trim())) {
       Toast.show({ type: 'error', text1: 'Invalid Email', text2: 'Please enter a valid email address 📧' });
       return;
     }
 
-    // 3. Validation: Password Match
+    
     if (password !== confirmPassword) {
       Toast.show({ type: 'error', text1: 'Password Mismatch', text2: 'Passwords do not match ❌' });
       return;
     }
 
-    // 4. Validation: Password Length
+    
     if (password.length < 6) {
       Toast.show({ type: 'error', text1: 'Weak Password', text2: 'Password must be at least 6 characters 🔒' });
       return;
@@ -65,11 +65,11 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      // 5. Create User in Firebase Auth
+      
       const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
 
-      // 6. Store Profile Data in Firestore
+      
       await setDoc(doc(db, "users", user.uid), {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -79,9 +79,7 @@ export default function RegisterScreen() {
         createdAt: new Date().toISOString(),
       });
 
-      // 7. SIGN OUT IMMEDIATELY
-      // Firebase signs users in automatically after registration. 
-      // We sign them out so they are forced to see the Login screen.
+      
       await signOut(auth);
 
       Toast.show({
@@ -90,7 +88,7 @@ export default function RegisterScreen() {
         text2: 'Account created! Please login to continue. 🎉'
       });
 
-      // 8. Redirect to Login
+    
       router.replace("/(auth)/login");
 
     } catch (error: any) {
