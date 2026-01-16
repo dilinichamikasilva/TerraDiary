@@ -20,13 +20,26 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false); 
   const router = useRouter();
 
+  // Email validation regex pattern
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
   const handleLogin = async () => {
-    
     if (!email || !password) {
       Toast.show({
         type: 'error',
-        text1: 'Oops!',
+        text1: 'Required',
         text2: 'Please fill in all fields ✍️',
+      });
+      return;
+    }
+
+    if (!validateEmail(email.trim())) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid Email',
+        text2: 'Please enter a valid email address 📧',
       });
       return;
     }
@@ -34,8 +47,8 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      //Attempt Login
-      await signInWithEmailAndPassword(auth, email, password);
+      
+      await signInWithEmailAndPassword(auth, email.trim(), password);
       
       Toast.show({
         type: 'success',
@@ -44,13 +57,14 @@ export default function LoginScreen() {
       });
 
     } catch (error: any) {
-      
       let errorMessage = "Check your credentials and try again.";
       
       if (error.code === 'auth/invalid-credential') {
         errorMessage = "Invalid email or password.";
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "Too many attempts. Try again later.";
+      } else if (error.code === 'auth/user-not-found') {
+        errorMessage = "No user found with this email.";
       }
 
       Toast.show({
@@ -78,6 +92,7 @@ export default function LoginScreen() {
             placeholderTextColor="#64748b"
             autoCapitalize="none"
             keyboardType="email-address"
+            autoCorrect={false}
             onChangeText={setEmail}
             value={email}
             editable={!loading}
