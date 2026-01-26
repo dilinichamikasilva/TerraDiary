@@ -26,7 +26,7 @@ export default function RootLayout() {
       router.replace("/");
     } else if (user && !inTabsGroup) {
       
-      router.replace("/(tabs)/map");
+      router.replace("/(tabs)/home");
     }
   }, [user, segments]);
 

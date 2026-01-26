@@ -65,6 +65,7 @@ export default function LoginScreen() {
     try {
       await signInWithCredential(auth, credential);
       Toast.show({ type: 'success', text1: `Logged in with ${providerName} 🎉` });
+      router.replace("/(tabs)/home");
     } catch (error: any) {
       Toast.show({ type: 'error', text1: 'Login Failed', text2: error.message });
     } finally {
@@ -77,6 +78,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
+      router.replace("/(tabs)/home");
     } catch (error: any) {
       Toast.show({ type: 'error', text1: 'Login Failed', text2: "Check your credentials." });
     } finally {
