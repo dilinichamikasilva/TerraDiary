@@ -7,4 +7,6 @@ export interface TravelPost {
   isPublic: boolean;
   mood?: string;
   createdAt?: any; 
+  latitude?: number;
+  longitude?: number;
 }
