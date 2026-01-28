@@ -5,8 +5,12 @@ export interface TravelPost {
   description: string;
   locationName: string;
   isPublic: boolean;
+  imageUrl?: string; 
   mood?: string;
-  createdAt?: any; 
+  createdAt?: {
+    seconds: number;
+    nanoseconds: number;
+  } | any; 
   latitude?: number;
   longitude?: number;
 }

@@ -1,99 +1,212 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Switch } from 'react-native';
-import { db, auth } from '../firebaseConfig';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { 
+  View, Text, TextInput, TouchableOpacity, ScrollView, 
+  Image, ActivityIndicator, Switch, Alert 
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Toast from 'react-native-toast-message';
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
+import { db, auth } from '../firebaseConfig';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import "../global.css";
 
-export default function AddEntry() {
-  const router = useRouter();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [locationName, setLocationName] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
-  const [loading, setLoading] = useState(false);
+const MOODS = [
+  { emoji: '☀️', label: 'Sunny' },
+  { emoji: '🏔️', label: 'Adventurous' },
+  { emoji: '🍜', label: 'Foodie' },
+  { emoji: '🌊', label: 'Relaxed' },
+  { emoji: '🌃', label: 'City' },
+  { emoji: '🏖️', label: 'Beach' },
+];
 
-  const handleSave = async () => {
-    if (!title || !description || !locationName) {
-      Toast.show({ type: 'error', text1: 'Fill everything! ✍️' });
+export default function AddEntryScreen() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [image, setImage] = useState<string | null>(null);
+  const [selectedMood, setSelectedMood] = useState('☀️');
+  
+  // Form State
+  const [title, setTitle] = useState('');
+  const [locationName, setLocationName] = useState('');
+  const [description, setDescription] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert("Permission Denied", "We need access to your photos.");
       return;
     }
 
-    setLoading(true);
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) setImage(result.assets[0].uri);
+  };
+
+  const uploadToCloudinary = async (imageUri: string) => {
+    const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+        console.error("Cloudinary credentials are missing in .env");
+        return null;
+    }
+
+    const data = new FormData();
+    // @ts-ignore
+    data.append('file', {
+      uri: imageUri,
+      type: 'image/jpeg',
+      name: 'upload.jpg',
+    });
+    data.append('upload_preset', uploadPreset);
+
     try {
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: data,
+      });
+      const result = await response.json();
+      return result.secure_url;
+    } catch (error) {
+      console.error("Cloudinary Error:", error);
+      return null;
+    }
+};
+
+  const handleSave = async () => {
+    if (!title || !locationName) {
+      Alert.alert("Missing Info", "Title and Location are required.");
+      return;
+    }
+    setLoading(true);
+
+    try {
+      let finalImageUrl = null;
+      let coords = { lat: 0, lng: 0 };
+
+      // Get Location
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+      }
+
+      // Upload Image
+      if (image) {
+        finalImageUrl = await uploadToCloudinary(image);
+      }
+
+      // Save to Firestore
       await addDoc(collection(db, "posts"), {
         userId: auth.currentUser?.uid,
-        userEmail: auth.currentUser?.email,
         title,
-        description,
         locationName,
+        description,
         isPublic,
+        imageUrl: finalImageUrl,
+        latitude: coords.lat,
+        longitude: coords.lng,
+        mood: selectedMood,
         createdAt: serverTimestamp(),
-        // For the map, we'd eventually add lat/lng here
-        coords: { latitude: 48.8566, longitude: 2.3522 } // Example: Paris
       });
 
-      Toast.show({ type: 'success', text1: 'Adventure Saved! ✈️' });
       router.back();
-    } catch (e:any) {
-      Toast.show({ type: 'error', text1: 'Error saving', text2: e.message });
+    } catch (error) {
+      Alert.alert("Error", "Could not save your memory.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View className="flex-1 bg-slate-950 px-6 pt-16">
-      <View className="flex-row justify-between items-center mb-8">
+    <View className="flex-1 bg-slate-950">
+      {/* Header */}
+      <View className="px-6 pt-16 flex-row justify-between items-center bg-slate-950/80 backdrop-blur-md pb-4">
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="close" size={30} color="#64748b" />
+          <Ionicons name="close" size={28} color="white" />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-bold">New Adventure</Text>
+        <Text className="text-white text-xl font-black">New Memory</Text>
         <TouchableOpacity onPress={handleSave} disabled={loading}>
-          <Text className={loading ? "text-emerald-800" : "text-emerald-500 font-bold text-lg"}>Post</Text>
+          {loading ? <ActivityIndicator color="#10b981" /> : <Text className="text-emerald-500 font-bold text-lg">Post</Text>}
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <TextInput
-          placeholder="Where did you go?"
-          placeholderTextColor="#64748b"
-          className="text-white text-2xl font-bold mb-6"
-          onChangeText={setLocationName}
-        />
+      <ScrollView className="px-6 mt-4" showsVerticalScrollIndicator={false}>
+        {/* Image Picker */}
+        <TouchableOpacity 
+          onPress={pickImage}
+          className="w-full h-64 bg-slate-900 rounded-[40px] border-2 border-dashed border-slate-800 items-center justify-center overflow-hidden mb-6"
+        >
+          {image ? (
+            <Image source={{ uri: image }} className="w-full h-full" />
+          ) : (
+            <View className="items-center">
+              <Ionicons name="camera-outline" size={48} color="#475569" />
+              <Text className="text-slate-500 mt-2 font-medium">Add a cover photo</Text>
+            </View>
+          )}
+        </TouchableOpacity>
 
-        <TextInput
-          placeholder="Give your story a title..."
+        {/* Inputs */}
+        <TextInput 
+          placeholder="Where did you go?" 
           placeholderTextColor="#475569"
-          className="text-slate-200 text-lg mb-4 border-b border-slate-800 pb-2"
+          className="text-white text-3xl font-black mb-6"
+          value={title}
           onChangeText={setTitle}
         />
 
-        <TextInput
-          placeholder="Tell the story of your journey..."
+        <View className="bg-slate-900/50 p-4 rounded-3xl border border-white/5 mb-4 flex-row items-center">
+          <Ionicons name="location-outline" size={20} color="#10b981" />
+          <TextInput 
+            placeholder="Location (City, Country)" 
+            placeholderTextColor="#475569"
+            className="flex-1 ml-3 text-white font-bold"
+            value={locationName}
+            onChangeText={setLocationName}
+          />
+        </View>
+
+        {/* Mood Selector */}
+        <Text className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-3 ml-1">Vibe Check</Text>
+        <View className="flex-row justify-between mb-6">
+          {MOODS.map((m) => (
+            <TouchableOpacity 
+              key={m.label}
+              onPress={() => setSelectedMood(m.emoji)}
+              className={`w-14 h-14 rounded-2xl items-center justify-center border ${selectedMood === m.emoji ? 'bg-emerald-500/20 border-emerald-500' : 'bg-slate-900 border-white/5'}`}
+            >
+              <Text className="text-2xl">{m.emoji}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TextInput 
+          placeholder="Tell the story..." 
           placeholderTextColor="#475569"
           multiline
-          numberOfLines={6}
-          className="text-slate-300 text-base leading-6 mb-8 h-40"
-          textAlignVertical="top"
+          className="text-slate-300 text-lg mb-8 min-h-[120px] bg-slate-900/30 p-5 rounded-3xl"
+          value={description}
           onChangeText={setDescription}
         />
 
-        <View className="bg-slate-900/50 p-4 rounded-3xl flex-row justify-between items-center border border-white/5">
-          <View className="flex-row items-center">
-            <Ionicons name="earth" size={24} color="#10b981" />
-            <View className="ml-3">
-              <Text className="text-white font-bold">Share with World</Text>
-              <Text className="text-slate-500 text-xs">Visible in Global Feed</Text>
-            </View>
+        {/* Public Toggle */}
+        <View className="flex-row justify-between items-center bg-slate-900/50 p-6 rounded-[32px] border border-white/5 mb-20">
+          <View>
+            <Text className="text-white font-bold text-base">Make Public</Text>
+            <Text className="text-slate-500 text-xs">Share this with the global feed</Text>
           </View>
           <Switch 
             value={isPublic} 
             onValueChange={setIsPublic}
             trackColor={{ false: "#1e293b", true: "#059669" }}
-            thumbColor={isPublic ? "#10b981" : "#64748b"}
           />
         </View>
       </ScrollView>
