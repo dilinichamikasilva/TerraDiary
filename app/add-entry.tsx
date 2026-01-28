@@ -32,10 +32,11 @@ export default function AddEntryScreen() {
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
 
+  // --- Image Picking  ---
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert("Permission Denied", "We need access to your photos.");
+      Alert.alert("Permission Denied", "We need access to your photos to upload memories.");
       return;
     }
 
@@ -43,18 +44,19 @@ export default function AddEntryScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.5,
+      quality: 0.6,
     });
 
     if (!result.canceled) setImage(result.assets[0].uri);
   };
 
+  // --- Cloudinary Upload  ---
   const uploadToCloudinary = async (imageUri: string) => {
     const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-        console.error("Cloudinary credentials are missing in .env");
+        console.error("Cloudinary credentials missing in .env");
         return null;
     }
 
@@ -78,11 +80,12 @@ export default function AddEntryScreen() {
       console.error("Cloudinary Error:", error);
       return null;
     }
-};
+  };
 
+  // --- Main Save Function ---
   const handleSave = async () => {
     if (!title || !locationName) {
-      Alert.alert("Missing Info", "Title and Location are required.");
+      Alert.alert("Missing Info", "Please provide a title and location.");
       return;
     }
     setLoading(true);
@@ -91,21 +94,27 @@ export default function AddEntryScreen() {
       let finalImageUrl = null;
       let coords = { lat: 0, lng: 0 };
 
-      // Get Location
+      // Get User Display Name 
+      const travelerName = auth.currentUser?.displayName || 
+                           auth.currentUser?.email?.split('@')[0] || 
+                           "Explorer";
+
+      // Get GPS Location
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         const loc = await Location.getCurrentPositionAsync({});
         coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
       }
 
-      // Upload Image
+      // Upload Image if exists
       if (image) {
         finalImageUrl = await uploadToCloudinary(image);
       }
 
-      // Save to Firestore
+      // Save Record to Firestore
       await addDoc(collection(db, "posts"), {
         userId: auth.currentUser?.uid,
+        userName: travelerName, 
         title,
         locationName,
         description,
@@ -119,7 +128,8 @@ export default function AddEntryScreen() {
 
       router.back();
     } catch (error) {
-      Alert.alert("Error", "Could not save your memory.");
+      console.error(error);
+      Alert.alert("Error", "Could not save your memory. Check your connection.");
     } finally {
       setLoading(false);
     }
@@ -128,60 +138,69 @@ export default function AddEntryScreen() {
   return (
     <View className="flex-1 bg-slate-950">
       {/* Header */}
-      <View className="px-6 pt-16 flex-row justify-between items-center bg-slate-950/80 backdrop-blur-md pb-4">
+      <View className="px-6 pt-16 flex-row justify-between items-center bg-slate-950/80 pb-4">
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="close" size={28} color="white" />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-black">New Memory</Text>
+        <Text className="text-white text-xl font-black italic">NEW ENTRY</Text>
         <TouchableOpacity onPress={handleSave} disabled={loading}>
-          {loading ? <ActivityIndicator color="#10b981" /> : <Text className="text-emerald-500 font-bold text-lg">Post</Text>}
+          {loading ? (
+            <ActivityIndicator color="#10b981" />
+          ) : (
+            <Text className="text-emerald-500 font-bold text-lg">Post</Text>
+          )}
         </TouchableOpacity>
       </View>
 
       <ScrollView className="px-6 mt-4" showsVerticalScrollIndicator={false}>
-        {/* Image Picker */}
+        {/* Photo Upload Area */}
         <TouchableOpacity 
           onPress={pickImage}
-          className="w-full h-64 bg-slate-900 rounded-[40px] border-2 border-dashed border-slate-800 items-center justify-center overflow-hidden mb-6"
+          className="w-full h-64 bg-slate-900 rounded-[40px] border-2 border-dashed border-slate-800 items-center justify-center overflow-hidden mb-8"
         >
           {image ? (
             <Image source={{ uri: image }} className="w-full h-full" />
           ) : (
             <View className="items-center">
-              <Ionicons name="camera-outline" size={48} color="#475569" />
-              <Text className="text-slate-500 mt-2 font-medium">Add a cover photo</Text>
+              <View className="bg-slate-800 p-4 rounded-full mb-3">
+                <Ionicons name="camera" size={32} color="#10b981" />
+              </View>
+              <Text className="text-slate-400 font-bold">Snap or Pick a Photo</Text>
+              <Text className="text-slate-600 text-xs mt-1">Recommended: 4:3 Aspect Ratio</Text>
             </View>
           )}
         </TouchableOpacity>
 
-        {/* Inputs */}
+        {/* Text Inputs */}
         <TextInput 
-          placeholder="Where did you go?" 
-          placeholderTextColor="#475569"
-          className="text-white text-3xl font-black mb-6"
+          placeholder="Adventure Title..." 
+          placeholderTextColor="#334155"
+          className="text-white text-4xl font-black mb-6"
           value={title}
           onChangeText={setTitle}
         />
 
-        <View className="bg-slate-900/50 p-4 rounded-3xl border border-white/5 mb-4 flex-row items-center">
-          <Ionicons name="location-outline" size={20} color="#10b981" />
+        <View className="bg-slate-900/80 p-5 rounded-3xl border border-white/5 mb-6 flex-row items-center">
+          <Ionicons name="location" size={20} color="#10b981" />
           <TextInput 
-            placeholder="Location (City, Country)" 
+            placeholder="City, Country" 
             placeholderTextColor="#475569"
-            className="flex-1 ml-3 text-white font-bold"
+            className="flex-1 ml-3 text-white font-bold text-lg"
             value={locationName}
             onChangeText={setLocationName}
           />
         </View>
 
-        {/* Mood Selector */}
-        <Text className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-3 ml-1">Vibe Check</Text>
-        <View className="flex-row justify-between mb-6">
+        {/* Mood/Vibe Selector */}
+        <Text className="text-slate-500 font-black uppercase text-[10px] tracking-[3px] mb-4 ml-1">Current Vibe</Text>
+        <View className="flex-row justify-between mb-8">
           {MOODS.map((m) => (
             <TouchableOpacity 
               key={m.label}
               onPress={() => setSelectedMood(m.emoji)}
-              className={`w-14 h-14 rounded-2xl items-center justify-center border ${selectedMood === m.emoji ? 'bg-emerald-500/20 border-emerald-500' : 'bg-slate-900 border-white/5'}`}
+              className={`w-12 h-12 rounded-2xl items-center justify-center border-2 ${
+                selectedMood === m.emoji ? 'bg-emerald-500/20 border-emerald-500' : 'bg-slate-900 border-transparent'
+              }`}
             >
               <Text className="text-2xl">{m.emoji}</Text>
             </TouchableOpacity>
@@ -189,27 +208,39 @@ export default function AddEntryScreen() {
         </View>
 
         <TextInput 
-          placeholder="Tell the story..." 
+          placeholder="What happened on this trip? Write your heart out..." 
           placeholderTextColor="#475569"
           multiline
-          className="text-slate-300 text-lg mb-8 min-h-[120px] bg-slate-900/30 p-5 rounded-3xl"
+          className="text-slate-300 text-lg mb-10 min-h-[150px] bg-slate-900/30 p-6 rounded-[32px] border border-white/5"
           value={description}
           onChangeText={setDescription}
+          textAlignVertical="top"
         />
 
-        {/* Public Toggle */}
-        <View className="flex-row justify-between items-center bg-slate-900/50 p-6 rounded-[32px] border border-white/5 mb-20">
-          <View>
-            <Text className="text-white font-bold text-base">Make Public</Text>
-            <Text className="text-slate-500 text-xs">Share this with the global feed</Text>
+        {/* Privacy Control */}
+        <View className="flex-row justify-between items-center bg-slate-900/50 p-6 rounded-[32px] border border-white/5 mb-24">
+          <View className="flex-1 pr-4">
+            <Text className="text-white font-bold text-lg">Public Memory</Text>
+            <Text className="text-slate-500 text-xs mt-1">
+              Toggle this to share your journey with the Terra Diary community.
+            </Text>
           </View>
           <Switch 
             value={isPublic} 
             onValueChange={setIsPublic}
             trackColor={{ false: "#1e293b", true: "#059669" }}
+            thumbColor={isPublic ? "#10b981" : "#64748b"}
           />
         </View>
       </ScrollView>
+
+      {/* Loading Overlay */}
+      {loading && (
+        <View className="absolute inset-0 bg-slate-950/80 items-center justify-center z-50">
+          <ActivityIndicator size="large" color="#10b981" />
+          <Text className="text-white mt-4 font-bold tracking-widest">UPLOADING MEMORY...</Text>
+        </View>
+      )}
     </View>
   );
 }
