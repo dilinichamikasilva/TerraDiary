@@ -61,7 +61,7 @@ export default function ProfileScreen() {
         <View className="flex-row space-x-4 mb-8">
           <View className="flex-1 bg-slate-900/50 p-6 rounded-[32px] border border-white/5 items-center">
             <Text className="text-emerald-500 text-3xl font-black">{stats.countries}</Text>
-            <Text className="text-slate-400 text-[10px] uppercase font-bold tracking-widest mt-1">Countries</Text>
+            <Text className="text-slate-400 text-[10px] uppercase font-bold tracking-widest mt-1">Locations</Text>
           </View>
           <View className="flex-1 bg-slate-900/50 p-6 rounded-[32px] border border-white/5 items-center">
             <Text className="text-blue-400 text-3xl font-black">{stats.memories}</Text>

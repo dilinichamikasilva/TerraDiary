@@ -63,7 +63,7 @@ export default function HomeScreen() {
         <View className="mb-6">
           <Text className="text-white text-3xl font-black mb-4">Your Vault</Text>
           <View className="flex-row space-x-3">
-            <StatCard icon="earth" count={stats.countries} label="Countries" color="#10b981" />
+            <StatCard icon="earth" count={stats.countries} label="Locations" color="#10b981" />
             <StatCard icon="bookmarks" count={stats.memories} label="Memories" color="#3b82f6" />
           </View>
         </View>
