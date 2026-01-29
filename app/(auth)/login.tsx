@@ -24,6 +24,7 @@ import { AntDesign, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import * as Facebook from 'expo-auth-session/providers/facebook'; 
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import "../../global.css";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -36,8 +37,10 @@ export default function LoginScreen() {
 
   // --- Facebook Auth Hook ---
   const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID, 
+    clientId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID,
+    redirectUri: "https://auth.expo.io/@dilini713/terra-diary",
   });
+
 
   // --- Google Auth Hook ---
   const [gRequest, gResponse, gPromptAsync] = Google.useAuthRequest({
@@ -45,6 +48,14 @@ export default function LoginScreen() {
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
   });
+
+  useEffect(() => {
+  const debugUri = AuthSession.makeRedirectUri({
+    scheme: 'terradiary',
+    path: 'facebook-auth',
+  });
+  console.log("ACTUAL URI BEING SENT:", debugUri);
+}, []);
 
   useEffect(() => {
     if (fbResponse?.type === 'success') {
@@ -63,11 +74,26 @@ export default function LoginScreen() {
   const handleSocialLogin = async (credential: any, providerName: string) => {
     setLoading(true);
     try {
+      //Sign in to Firebase
       await signInWithCredential(auth, credential);
-      Toast.show({ type: 'success', text1: `Logged in with ${providerName} 🎉` });
-      router.replace("/(tabs)/home");
+      
+      // Feedback to user
+      Toast.show({ 
+        type: 'success', 
+        text1: `Logged in with ${providerName} 🎉`,
+        position: 'bottom'
+      });
+
+    
+      router.replace("/(tabs)/home"); 
+      
     } catch (error: any) {
-      Toast.show({ type: 'error', text1: 'Login Failed', text2: error.message });
+      console.error(`${providerName} Login Error:`, error);
+      Toast.show({ 
+        type: 'error', 
+        text1: 'Login Failed', 
+        text2: error.message 
+      });
     } finally {
       setLoading(false);
     }
@@ -90,7 +116,7 @@ export default function LoginScreen() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View className="flex-1 bg-slate-950">
         
-        {/* Decorative Background Glows (Same as Register) */}
+        
         <View className="absolute top-[-50] left-[-50] w-72 h-72 bg-emerald-500/10 rounded-full blur-[80px]" />
         <View className="absolute bottom-[-50] right-[-50] w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]" />
 
@@ -115,7 +141,6 @@ export default function LoginScreen() {
                 </Text>
               </View>
 
-              {/* Main Glassmorphic Card */}
               <View className="w-full bg-slate-900/60 p-6 rounded-[40px] border border-slate-800/50 shadow-2xl backdrop-blur-xl">
                 
                 <TextInput
@@ -149,14 +174,12 @@ export default function LoginScreen() {
                   )}
                 </TouchableOpacity>
 
-                {/* Divider */}
                 <View className="flex-row items-center my-8">
                   <View className="flex-1 h-[1px] bg-slate-800" />
                   <Text className="text-slate-500 mx-4 text-xs font-bold uppercase tracking-widest">or continue with</Text>
                   <View className="flex-1 h-[1px] bg-slate-800" />
                 </View>
 
-                {/* Social Buttons */}
                 <View className="flex-row justify-between mb-2">
                   <TouchableOpacity 
                     className="bg-slate-800/50 p-4 rounded-2xl w-[48%] items-center border border-slate-700/50" 
@@ -173,7 +196,6 @@ export default function LoginScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Footer Link */}
                 <TouchableOpacity onPress={() => router.push("/(auth)/register")} className="mt-6">
                   <Text className="text-slate-400 text-center font-medium">
                     New traveler? <Text className="text-emerald-400 font-bold underline">Register</Text>
