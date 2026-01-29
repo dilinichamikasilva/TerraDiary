@@ -23,41 +23,48 @@ const MOODS = [
 export default function AddEntryScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [image, setImage] = useState<string | null>(null);
-  const [selectedMood, setSelectedMood] = useState('☀️');
   
-  // Form State
+  // State Management
+  const [images, setImages] = useState<string[]>([]); 
+  const [selectedMood, setSelectedMood] = useState('☀️');
   const [title, setTitle] = useState('');
   const [locationName, setLocationName] = useState('');
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
 
-  // --- Image Picking  ---
-  const pickImage = async () => {
+  // Multi-Image Selection ---
+  const pickImages = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert("Permission Denied", "We need access to your photos to upload memories.");
+      Alert.alert("Permission Denied", "We need access to your photos to continue.");
       return;
     }
 
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsMultipleSelection: true,
+      selectionLimit: 5,
       quality: 0.6,
     });
 
-    if (!result.canceled) setImage(result.assets[0].uri);
+    if (!result.canceled) {
+      const selectedUris = result.assets.map(asset => asset.uri);
+      setImages([...images, ...selectedUris]);
+    }
   };
 
-  // --- Cloudinary Upload  ---
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
+  // Cloudinary Upload  
   const uploadToCloudinary = async (imageUri: string) => {
     const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-        console.error("Cloudinary credentials missing in .env");
-        return null;
+      console.error("Cloudinary Error: Credentials missing in .env");
+      return null;
     }
 
     const data = new FormData();
@@ -70,56 +77,52 @@ export default function AddEntryScreen() {
     data.append('upload_preset', uploadPreset);
 
     try {
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: data,
-      });
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: 'POST', body: data }
+      );
       const result = await response.json();
       return result.secure_url;
     } catch (error) {
-      console.error("Cloudinary Error:", error);
+      console.error("Cloudinary Network Error:", error);
       return null;
     }
   };
 
-  // --- Main Save Function ---
+  // Save Entry  
   const handleSave = async () => {
     if (!title || !locationName) {
-      Alert.alert("Missing Info", "Please provide a title and location.");
+      Alert.alert("Missing Info", "Please add a title and location.");
       return;
     }
     setLoading(true);
 
     try {
-      let finalImageUrl = null;
-      let coords = { lat: 0, lng: 0 };
-
-      // Get User Display Name 
-      const travelerName = auth.currentUser?.displayName || 
-                           auth.currentUser?.email?.split('@')[0] || 
-                           "Explorer";
+      // Parallel Image Uploads
+      const uploadPromises = images.map(uri => uploadToCloudinary(uri));
+      const finalImageUrls = (await Promise.all(uploadPromises)).filter(url => url !== null);
 
       // Get GPS Location
       const { status } = await Location.requestForegroundPermissionsAsync();
+      let coords = { lat: 0, lng: 0 };
       if (status === 'granted') {
         const loc = await Location.getCurrentPositionAsync({});
         coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
       }
 
-      // Upload Image if exists
-      if (image) {
-        finalImageUrl = await uploadToCloudinary(image);
-      }
+      const travelerName = auth.currentUser?.displayName || 
+                           auth.currentUser?.email?.split('@')[0] || 
+                           "Explorer";
 
-      // Save Record to Firestore
+      // Save to Firestore
       await addDoc(collection(db, "posts"), {
         userId: auth.currentUser?.uid,
-        userName: travelerName, 
+        userName: travelerName,
         title,
         locationName,
         description,
         isPublic,
-        imageUrl: finalImageUrl,
+        imageUrls: finalImageUrls, 
         latitude: coords.lat,
         longitude: coords.lng,
         mood: selectedMood,
@@ -129,7 +132,7 @@ export default function AddEntryScreen() {
       router.back();
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Could not save your memory. Check your connection.");
+      Alert.alert("Error", "Could not save your memory.");
     } finally {
       setLoading(false);
     }
@@ -153,23 +156,31 @@ export default function AddEntryScreen() {
       </View>
 
       <ScrollView className="px-6 mt-4" showsVerticalScrollIndicator={false}>
-        {/* Photo Upload Area */}
-        <TouchableOpacity 
-          onPress={pickImage}
-          className="w-full h-64 bg-slate-900 rounded-[40px] border-2 border-dashed border-slate-800 items-center justify-center overflow-hidden mb-8"
-        >
-          {image ? (
-            <Image source={{ uri: image }} className="w-full h-full" />
-          ) : (
-            <View className="items-center">
-              <View className="bg-slate-800 p-4 rounded-full mb-3">
-                <Ionicons name="camera" size={32} color="#10b981" />
-              </View>
-              <Text className="text-slate-400 font-bold">Snap or Pick a Photo</Text>
-              <Text className="text-slate-600 text-xs mt-1">Recommended: 4:3 Aspect Ratio</Text>
+        {/* Horizontal Multi-Image Preview */}
+        <Text className="text-slate-500 font-black uppercase text-[10px] tracking-[3px] mb-4 ml-1">Photos</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row mb-8">
+          <TouchableOpacity 
+            onPress={pickImages}
+            className="w-40 h-56 bg-slate-900 rounded-[30px] border-2 border-dashed border-slate-800 items-center justify-center mr-4"
+          >
+            <View className="bg-emerald-500/10 p-3 rounded-full">
+               <Ionicons name="add" size={30} color="#10b981" />
             </View>
-          )}
-        </TouchableOpacity>
+            <Text className="text-slate-500 font-bold text-xs mt-2">Add Photos</Text>
+          </TouchableOpacity>
+
+          {images.map((uri, index) => (
+            <View key={index} className="relative mr-4">
+              <Image source={{ uri }} className="w-40 h-56 rounded-[30px]" />
+              <TouchableOpacity 
+                onPress={() => removeImage(index)}
+                className="absolute top-2 right-2 bg-red-500 w-8 h-8 rounded-full items-center justify-center border-2 border-slate-950"
+              >
+                <Ionicons name="trash" size={14} color="white" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
 
         {/* Text Inputs */}
         <TextInput 
@@ -191,7 +202,7 @@ export default function AddEntryScreen() {
           />
         </View>
 
-        {/* Mood/Vibe Selector */}
+        {/* Mood Selector */}
         <Text className="text-slate-500 font-black uppercase text-[10px] tracking-[3px] mb-4 ml-1">Current Vibe</Text>
         <View className="flex-row justify-between mb-8">
           {MOODS.map((m) => (
@@ -217,13 +228,11 @@ export default function AddEntryScreen() {
           textAlignVertical="top"
         />
 
-        {/* Privacy Control */}
+        {/* Privacy Switch */}
         <View className="flex-row justify-between items-center bg-slate-900/50 p-6 rounded-[32px] border border-white/5 mb-24">
           <View className="flex-1 pr-4">
             <Text className="text-white font-bold text-lg">Public Memory</Text>
-            <Text className="text-slate-500 text-xs mt-1">
-              Toggle this to share your journey with the Terra Diary community.
-            </Text>
+            <Text className="text-slate-500 text-xs mt-1">Share this journey with the community.</Text>
           </View>
           <Switch 
             value={isPublic} 
@@ -234,11 +243,13 @@ export default function AddEntryScreen() {
         </View>
       </ScrollView>
 
-      {/* Loading Overlay */}
+      {/* Full Screen Loading Overlay */}
       {loading && (
-        <View className="absolute inset-0 bg-slate-950/80 items-center justify-center z-50">
+        <View className="absolute inset-0 bg-slate-950/90 items-center justify-center z-50">
           <ActivityIndicator size="large" color="#10b981" />
-          <Text className="text-white mt-4 font-bold tracking-widest">UPLOADING MEMORY...</Text>
+          <Text className="text-white mt-4 font-black tracking-widest">
+            UPLOADING {images.length} PHOTOS...
+          </Text>
         </View>
       )}
     </View>

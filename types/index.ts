@@ -6,7 +6,7 @@ export interface TravelPost {
   description: string;
   locationName: string;
   isPublic: boolean;
-  imageUrl?: string; 
+  imageUrls?: string[];
   mood?: string;
   createdAt?: any; 
   latitude?: number;

@@ -1,6 +1,9 @@
-import { View, Text, Image } from 'react-native';
+import { View, Text, Image, ScrollView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TravelPost } from '../types';
+
+const { width } = Dimensions.get('window');
+
 
 export function StatCard({ icon, count, label, color }: { icon: any, count: number, label: string, color: string }) {
   return (
@@ -16,6 +19,7 @@ export function StatCard({ icon, count, label, color }: { icon: any, count: numb
 
 
 export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boolean }) {
+  //Format Firebase Timestamp
   const dateString = item.createdAt?.seconds 
     ? new Date(item.createdAt.seconds * 1000).toLocaleDateString('en-US', {
         month: 'short',
@@ -23,11 +27,9 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
       })
     : 'New';
 
-  const optimizedImage = item.imageUrl?.replace('/upload/', '/upload/f_auto,q_auto,w_800/');
-
   return (
     <View className="flex-row">
-      {/* Sidebar  */}
+      {/* Sidebar - The Dot and Line */}
       <View className="items-center mr-4">
         <View className="w-4 h-4 rounded-full border-2 border-slate-950 bg-emerald-500 z-10 mt-1 shadow-sm" />
         {!isLast && <View className="w-[2px] flex-1 bg-slate-800/50 my-1" />}
@@ -47,14 +49,43 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
         {/* Main Memory Card */}
         <View className="bg-slate-900/40 rounded-[32px] p-2 border border-white/5 overflow-hidden">
           
-          {/* Cover Photo */}
-          {item.imageUrl && (
-            <Image 
-              source={{ uri: optimizedImage }} 
-              className="w-full h-56 rounded-[28px]"
-              resizeMode="cover"
-            />
-          )}
+          {/* Multi-Image  */}
+          {item.imageUrls && item.imageUrls.length > 0 ? (
+            <View>
+              <ScrollView 
+                horizontal 
+                pagingEnabled 
+                showsHorizontalScrollIndicator={false}
+                className="rounded-[28px]"
+              >
+                {item.imageUrls.map((url, index) => (
+                  <View key={index} style={{ width: width * 0.75 }}> 
+                    <Image 
+                      source={{ uri: url.replace('/upload/', '/upload/f_auto,q_auto,w_800/') }} 
+                      className="w-full h-64 rounded-[28px]"
+                      resizeMode="cover"
+                    />
+                    
+                    {/* Image Counter Badge */}
+                    {item.imageUrls!.length > 1 && (
+                      <View className="absolute top-4 right-4 bg-black/50 px-3 py-1 rounded-full border border-white/10">
+                        <Text className="text-white text-[10px] font-bold">
+                          {index + 1} / {item.imageUrls!.length}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
+              
+              {/* Swipe Indicator Tip */}
+              {item.imageUrls.length > 1 && (
+                <View className="absolute bottom-4 left-0 right-0 items-center">
+                   <Ionicons name="ellipsis-horizontal" size={16} color="rgba(255,255,255,0.5)" />
+                </View>
+              )}
+            </View>
+          ) : null}
 
           <View className="p-4">
             {/* Location and Mood Tag */}
@@ -83,7 +114,7 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
               </Text>
             ) : null}
 
-            {/* Social Indicator (If Public) */}
+            {/* Social Indicator */}
             {item.isPublic && (
               <View className="mt-5 flex-row items-center border-t border-white/5 pt-4">
                 <View className="bg-blue-500/10 p-1.5 rounded-lg mr-2">
