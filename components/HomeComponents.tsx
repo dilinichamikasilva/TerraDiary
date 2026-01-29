@@ -18,7 +18,6 @@ export function StatCard({ icon, count, label, color }: { icon: any, count: numb
   );
 }
 
-
 export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boolean }) {
   
   const isOwner = auth.currentUser?.uid === item.userId;
@@ -29,7 +28,6 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
         day: 'numeric'
       })
     : 'New';
-
 
   const handleOptionsPress = () => {
     Alert.alert(
@@ -45,7 +43,7 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
           onPress: () => togglePrivacy()
         },
         {
-          text: "Delete Permanentely",
+          text: "Delete Permanently",
           style: "destructive",
           onPress: () => confirmDelete()
         },
@@ -83,7 +81,6 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
       "Update your note for this trip:",
       [
         { text: "Cancel", style: "cancel" },
-
         { 
           text: "Update", 
           onPress: async (newDesc: string | undefined) => {
@@ -129,7 +126,7 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
         {/* Card Content */}
         <View className="bg-slate-900/40 rounded-[32px] p-2 border border-white/5 overflow-hidden">
           
-          {/* Multi-Image Carousel */}
+          {/* Multi-Image  */}
           {item.imageUrls && item.imageUrls.length > 0 && (
             <View>
               <ScrollView 
@@ -160,14 +157,19 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
 
           <View className="p-4">
             <View className="flex-row justify-between items-center mb-3">
-              <View className="flex-row items-center bg-emerald-500/10 px-2.5 py-1.5 rounded-xl border border-emerald-500/20">
+              <View className="flex-1 flex-row items-center bg-emerald-500/10 px-2.5 py-1.5 rounded-xl border border-emerald-500/20 mr-3">
                 <Ionicons name="location-sharp" size={12} color="#10b981" />
-                <Text className="text-emerald-400 font-bold text-[10px] uppercase tracking-widest ml-1.5">
+                <Text 
+                  className="text-emerald-400 font-bold text-[10px] uppercase tracking-widest ml-1.5 flex-1"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {item.locationName}
                 </Text>
               </View>
+
               {item.mood && (
-                <View className="bg-slate-800 w-10 h-10 rounded-full items-center justify-center border border-white/5">
+                <View className="bg-slate-800 w-10 h-10 rounded-full items-center justify-center border border-white/5 flex-shrink-0">
                   <Text className="text-xl">{item.mood}</Text>
                 </View>
               )}
