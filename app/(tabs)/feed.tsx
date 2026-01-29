@@ -12,7 +12,6 @@ export default function FeedScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchFeed = () => {
-    
     const q = query(
       collection(db, "posts"),
       where("isPublic", "==", true),
@@ -46,12 +45,17 @@ export default function FeedScreen() {
 
       <ScrollView 
         className="px-6 pt-20"
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => fetchFeed()} tintColor="#10b981" />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={() => fetchFeed()} 
+            tintColor="#10b981" 
+          />
         }
       >
         <View className="mb-8">
-          <Text className="text-blue-400 text-lg font-medium">Discovery</Text>
+          <Text className="text-blue-400 text-lg font-medium tracking-tight">Discovery</Text>
           <Text className="text-white text-3xl font-black">Global Feed</Text>
         </View>
 
@@ -59,17 +63,16 @@ export default function FeedScreen() {
           <ActivityIndicator size="large" color="#3b82f6" className="mt-20" />
         ) : posts.length === 0 ? (
           <View className="items-center mt-20">
-             <Text className="text-slate-500">The world is quiet right now...</Text>
+             <Text className="text-slate-500 font-medium">The world is quiet right now...</Text>
           </View>
         ) : (
           <View className="pb-20">
-            {posts.map((post) => (
-              <View key={post.id} className="mb-2">
-                {/* Small indicator of who posted */}
-                <Text className="text-slate-500 text-[10px] ml-8 mb-1 uppercase tracking-tighter font-bold">
-                   Traveler ID: {post.userId.substring(0, 8)}...
-                </Text>
-                <TimelineItem item={post} isLast={false} />
+            {posts.map((post, index) => (
+              <View key={post.id}>                
+                <TimelineItem 
+                  item={post} 
+                  isLast={index === posts.length - 1} 
+                />
               </View>
             ))}
           </View>
