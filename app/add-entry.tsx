@@ -35,7 +35,7 @@ export default function AddEntryScreen() {
   const [locationName, setLocationName] = useState('');
   const [geoCoords, setGeoCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  // --- Image Handling ---
+  //  Image Handling 
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') return Alert.alert("Denied", "Camera access needed.");
@@ -193,7 +193,7 @@ export default function AddEntryScreen() {
             onChangeText={setTitle} 
           />
 
-          {/* New Simplified Location Input */}
+          {/* Location Input */}
           <View className="mb-6">
             <View className="flex-row items-center mb-3 justify-between">
               <Text className="text-slate-500 font-black uppercase text-[10px] tracking-[3px]">Location</Text>
@@ -212,7 +212,7 @@ export default function AddEntryScreen() {
                 value={locationName}
                 onChangeText={(text) => {
                   setLocationName(text);
-                  setGeoCoords(null); // Reset coords so we geocode the new text on save
+                  setGeoCoords(null); 
                 }}
               />
             </View>

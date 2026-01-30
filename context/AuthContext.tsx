@@ -14,22 +14,25 @@ export const AuthContext = createContext<AuthContextType>({
     loading : false
 })
 
-export const AuthProvider = ({children} : {children:ReactNode}) => {
-    const {showLoader , hideLoader , isLoading} = useLoader()
-    const [user , setUser] = useState<User | null>(null);
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const { showLoader, hideLoader, isLoading } = useLoader();
+  const [user, setUser] = useState<User | null>(null);
+  const [isInitialAuthCheck, setIsInitialAuthCheck] = useState(true);
 
-    useEffect(() => {
-        showLoader();
-        const unsubscribe = onAuthStateChanged(auth , (usr) => {
-            setUser(usr)
-            hideLoader();
-        })
+  useEffect(() => {
+    showLoader(); 
+    const unsubscribe = onAuthStateChanged(auth, (usr) => {
+      setUser(usr);
+      setIsInitialAuthCheck(false);
+      hideLoader();
+    });
 
-        //cleanup function
-        return () => unsubscribe();
-    } , [])
-    
-    return <AuthContext.Provider value={{user , loading : isLoading}}>
-        {children}
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ user, loading: isInitialAuthCheck }}>
+      {children}
     </AuthContext.Provider>
-}
+  );
+};

@@ -9,7 +9,7 @@ import { auth, db } from "./firebaseConfig";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Standard Email Login
+// Email Login
 export const loginUser = async (email: string, password: string) => {
     return await signInWithEmailAndPassword(auth, email.trim(), password);
 };
