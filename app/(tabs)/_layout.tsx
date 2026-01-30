@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { Platform, View } from 'react-native';
+import { Platform } from 'react-native';
 
 export default function TabLayout() {
   return (
@@ -34,16 +34,16 @@ export default function TabLayout() {
       <Tabs.Screen
         name="feed"
         options={{
-            title: 'Feed',
-            tabBarIcon: ({ color, size, focused }) => (
+          title: 'Feed',
+          tabBarIcon: ({ color, size, focused }) => (
             <Ionicons 
-                name={focused ? "list" : "list-outline"} 
-                size={size} 
-                color={color} 
+              name={focused ? "list" : "list-outline"} 
+              size={size} 
+              color={color} 
             />
-            ),
+          ),
         }}
-    />
+      />
       <Tabs.Screen
         name="map"
         options={{
@@ -51,6 +51,8 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="map-outline" size={size} color={color} />,
         }}
       />
+
+     
       <Tabs.Screen
         name="profile"
         options={{
@@ -58,6 +60,8 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
         }}
       />
+
+    
     </Tabs>
   );
 }

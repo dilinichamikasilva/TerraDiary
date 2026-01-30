@@ -70,9 +70,21 @@ export default function ProfileScreen() {
 
         {/* Menu Options */}
         <View className="space-y-3">
-          <ProfileMenuBtn icon="settings-outline" label="Account Settings" />
-          <ProfileMenuBtn icon="notifications-outline" label="Notifications" />
-          <ProfileMenuBtn icon="shield-checkmark-outline" label="Privacy & Security" />
+          <ProfileMenuBtn 
+            icon="settings-outline" 
+            label="Account Settings" 
+            onPress={() => router.push("/account-settings")} 
+          />
+          <ProfileMenuBtn 
+            icon="notifications-outline" 
+            label="Notifications" 
+            onPress={() => router.push("/notifications")} 
+          />
+          <ProfileMenuBtn 
+            icon="shield-checkmark-outline" 
+            label="Privacy & Security" 
+            onPress={() => router.push("/privacy-security")} 
+          />
           
           <TouchableOpacity 
             onPress={handleLogout}
@@ -89,13 +101,14 @@ export default function ProfileScreen() {
   );
 }
 
-function ProfileMenuBtn({ icon, label }: { icon: any, label: string }) {
+
+function ProfileMenuBtn({ icon, label, onPress }: { icon: any, label: string, onPress: () => void }) {
   return (
-    <TouchableOpacity className="flex-row items-center bg-slate-900/30 p-5 rounded-3xl border border-white/5">
-      <Ionicons name={icon} size={22} color="#64748b" />
+    <TouchableOpacity onPress={onPress} className="flex-row items-center bg-slate-900/30 p-5 rounded-3xl border border-white/5 mb-3">
+      <Ionicons name={icon} size={22} color="#10b981" />
       <Text className="text-slate-300 font-medium ml-4">{label}</Text>
       <View className="flex-1" />
-      <Ionicons name="chevron-forward" size={18} color="#1e293b" />
+      <Ionicons name="chevron-forward" size={18} color="#475569" />
     </TouchableOpacity>
   );
 }
