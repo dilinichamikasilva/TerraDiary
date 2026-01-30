@@ -1,4 +1,4 @@
-// This is a standard Google Maps Dark Theme JSON
+
 export const mapStyle = [
   { "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
   { "elementType": "labels.text.fill", "stylers": [{ "color": "#94a3b8" }] },
