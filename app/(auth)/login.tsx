@@ -97,6 +97,14 @@ export default function LoginScreen() {
     }
   };
 
+  useEffect(() => {
+  if (gResponse?.type === 'success') {
+    console.log("Google Response:", gResponse);
+    const { id_token } = gResponse.params;
+    handleSocialLogin(GoogleAuthProvider.credential(id_token), 'Google');
+  }
+}, [gResponse]);
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View className="flex-1 bg-slate-950">
