@@ -127,9 +127,9 @@ export default function ProfileScreen() {
             onPress={() => router.push("/account-settings")} 
           />
           <ProfileMenuBtn 
-            icon="notifications-outline" 
-            label="Notifications" 
-            onPress={() => router.push("/notifications")} 
+            icon="compass-outline" 
+            label="Travel Preferences" 
+            onPress={() => router.push("/travel-preferences")} 
           />
           <ProfileMenuBtn 
             icon="shield-checkmark-outline" 
