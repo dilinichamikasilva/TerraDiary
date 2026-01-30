@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import { db, auth } from '../firebaseConfig';
+import { db, auth } from '../service/firebaseConfig';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import "../global.css";
 
@@ -76,7 +76,7 @@ export default function AddEntryScreen() {
     setLoading(false);
   };
 
-  // --- Cloudinary Upload ---
+  //  Cloudinary Upload 
   const uploadToCloudinary = async (imageUri: string) => {
     const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
@@ -97,7 +97,7 @@ export default function AddEntryScreen() {
     } catch { return null; }
   };
 
-  // --- Save Logic ---
+  //  Save Logic 
   const handleSave = async () => {
     if (!title || !locationName) {
       return Alert.alert("Missing Info", "Title and location are required.");

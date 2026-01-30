@@ -1,10 +1,10 @@
+import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
-import { db } from '../../firebaseConfig';
-import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
-import { TravelPost } from '../../types';
-import { TimelineItem } from '../../components/HomeComponents'; 
+import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { TimelineItem } from '../../components/HomeComponents';
 import "../../global.css";
+import { db } from '../../service/firebaseConfig';
+import { TravelPost } from '../../types';
 
 export default function FeedScreen() {
   const [posts, setPosts] = useState<TravelPost[]>([]);

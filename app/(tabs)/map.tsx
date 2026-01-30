@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Text, Dimensions, Image } from 'react-native';
-import MapView, { Marker, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
-import { db, auth } from '../../firebaseConfig';
-import { collection, query, onSnapshot, where } from 'firebase/firestore';
-import { TravelPost } from '../../types';
-import { mapStyle } from '../../constants/mapstyle'; 
 import { Ionicons } from '@expo/vector-icons';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { Dimensions, Image, StyleSheet, Text, View } from 'react-native';
+import MapView, { Callout, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { mapStyle } from '../../constants/mapstyle';
+import { auth, db } from '../../service/firebaseConfig';
+import { TravelPost } from '../../types';
 
 export default function MapScreen() {
   const [posts, setPosts] = useState<TravelPost[]>([]);

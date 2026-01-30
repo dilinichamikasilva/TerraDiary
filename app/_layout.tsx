@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { auth } from "../firebaseConfig";
+import { auth } from "../service/firebaseConfig";
 import { View, ActivityIndicator } from "react-native";
 import Toast from "react-native-toast-message";
 import "../global.css";

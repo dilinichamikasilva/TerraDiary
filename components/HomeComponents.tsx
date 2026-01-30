@@ -9,18 +9,23 @@ import {
   Alert, 
   RefreshControl, 
   Platform,
-  StatusBar
+  StatusBar,
+  ActivityIndicator,
+  AlertButton
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { TravelPost } from '../types';
-import { db, auth } from '../firebaseConfig';
+import { db, auth } from '../service/firebaseConfig';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
+
+import * as FileSystem from 'expo-file-system/legacy';
+import * as MediaLibrary from 'expo-media-library';
 
 const { width } = Dimensions.get('window');
 
-//  STAT CARD 
+// STAT CARD 
 export function StatCard({ icon, count, label, color }: { icon: any, count: number, label: string, color: string }) {
   return (
     <View className="flex-1 bg-white/5 border border-white/10 rounded-[32px] p-5 items-center">
@@ -36,17 +41,60 @@ export function StatCard({ icon, count, label, color }: { icon: any, count: numb
 //  TIMELINE ITEM 
 export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boolean }) {
   const isOwner = auth.currentUser?.uid === item.userId;
+  const [downloading, setDownloading] = useState(false);
+
   const dateString = item.createdAt?.seconds 
     ? new Date(item.createdAt.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : 'New';
 
+  //  SAVE TO GALLERY LOGIC 
+  const saveImageToGallery = async (imageUrl: string) => {
+    try {
+      setDownloading(true);
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert("Permission Denied", "We need access to your gallery to save photos.");
+        return;
+      }
+
+      const filename = `${item.title.replace(/\s+/g, '_')}_${Date.now()}.jpg`;
+      const fileUri = (FileSystem.cacheDirectory || '') + filename;
+
+      const downloadResult = await FileSystem.downloadAsync(imageUrl, fileUri);
+      await MediaLibrary.saveToLibraryAsync(downloadResult.uri);
+      
+      Alert.alert("Saved!", "Memory saved to your photo gallery! 📸");
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Download Error", "Failed to save the image.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const handleOptionsPress = () => {
-    Alert.alert("Manage Memory", "Options:", [
-      { text: "Edit", onPress: () => handleFullEdit() },
-      { text: item.isPublic ? "Make Private 🔒" : "Make Public 🌎", onPress: () => togglePrivacy() },
-      { text: "Delete", style: "destructive", onPress: () => confirmDelete() },
-      { text: "Cancel", style: "cancel" }
-    ]);
+    const options: AlertButton[] = [
+      { 
+        text: "Save to Gallery 📥", 
+        onPress: () => {
+          if (item.imageUrls?.[0]) saveImageToGallery(item.imageUrls[0]);
+        } 
+      },
+    ];
+
+    if (isOwner) {
+      options.push(
+        { text: "Edit Description", onPress: () => handleFullEdit() },
+        { 
+          text: item.isPublic ? "Make Private 🔒" : "Make Public 🌎", 
+          onPress: () => { togglePrivacy(); } 
+        },
+        { text: "Delete", style: "destructive", onPress: () => confirmDelete() }
+      );
+    }
+
+    options.push({ text: "Cancel", style: "cancel" });
+    Alert.alert("Memory Options", "What would you like to do?", options);
   };
 
   const togglePrivacy = async () => {
@@ -61,7 +109,7 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
     ]);
   };
 
- const handleFullEdit = () => {
+  const handleFullEdit = () => {
     Alert.prompt(
       "Edit Description",
       "Update your note for this trip:",
@@ -71,9 +119,7 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
           text: "Update", 
           onPress: async (newDesc: string | undefined) => {
             if (newDesc !== undefined) {
-              await updateDoc(doc(db, "posts", item.id), { 
-                description: newDesc 
-              });
+              await updateDoc(doc(db, "posts", item.id), { description: newDesc });
             }
           } 
         }
@@ -93,29 +139,41 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
       <View className="flex-1 mb-10">
         <View className="flex-row justify-between items-center mb-2 px-1">
           <Text className="text-slate-600 text-[10px] font-black uppercase tracking-widest">{dateString}</Text>
+          
           <View className="flex-row items-center">
             <Text className="text-emerald-500/60 text-[10px] font-bold mr-3">By {item.userName || 'Explorer'}</Text>
-            {isOwner && (
-              <TouchableOpacity onPress={handleOptionsPress} className="p-1">
-                <Ionicons name="ellipsis-horizontal" size={18} color="#475569" />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity onPress={handleOptionsPress} className="p-1">
+              <Ionicons name="ellipsis-horizontal" size={18} color="#475569" />
+            </TouchableOpacity>
           </View>
         </View>
 
         <View className="bg-slate-900/40 rounded-[32px] p-2 border border-white/5 overflow-hidden">
           {item.imageUrls && item.imageUrls.length > 0 && (
-            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} className="rounded-[28px]">
-              {item.imageUrls.map((url, index) => (
-                <View key={index} style={{ width: width * 0.72 }}> 
-                  <Image 
-                    source={{ uri: url.replace('/upload/', '/upload/f_auto,q_auto,w_800/') }} 
-                    className="w-full h-64 rounded-[28px]" 
-                    resizeMode="cover"
-                  />
-                </View>
-              ))}
-            </ScrollView>
+            <View>
+              <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} className="rounded-[28px]">
+                {item.imageUrls.map((url, index) => (
+                  <View key={index} style={{ width: width * 0.72 }}> 
+                    <Image 
+                      source={{ uri: url.replace('/upload/', '/upload/f_auto,q_auto,w_800/') }} 
+                      className="w-full h-64 rounded-[28px]" 
+                      resizeMode="cover"
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+
+              <TouchableOpacity 
+                onPress={() => item.imageUrls?.[0] && saveImageToGallery(item.imageUrls[0])}
+                className="absolute top-4 right-4 bg-slate-950/60 w-10 h-10 rounded-full items-center justify-center border border-white/10"
+              >
+                {downloading ? (
+                  <ActivityIndicator size="small" color="#10b981" />
+                ) : (
+                  <Ionicons name="download-outline" size={20} color="white" />
+                )}
+              </TouchableOpacity>
+            </View>
           )}
 
           <View className="p-4">
@@ -141,7 +199,7 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
   );
 }
 
-// --- MAIN SCREEN COMPONENT ---
+//  MAIN SCREEN COMPONENT 
 export default function TravelJournalScreen({ posts, fetchPosts }: { posts: TravelPost[], fetchPosts: () => Promise<void> }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -158,7 +216,6 @@ export default function TravelJournalScreen({ posts, fetchPosts }: { posts: Trav
     <View className="flex-1 bg-slate-950">
       <StatusBar barStyle="light-content" />
       
-      {/* MODERN DYNAMIC HEADER */}
       <View 
         style={{ paddingTop: insets.top }} 
         className="bg-slate-950 border-b border-white/5"

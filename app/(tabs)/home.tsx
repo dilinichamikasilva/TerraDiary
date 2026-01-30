@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { db, auth } from '../../firebaseConfig';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import { TravelPost } from '../../types';
+import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { StatCard, TimelineItem } from '../../components/HomeComponents';
 import "../../global.css";
+import { auth, db } from '../../service/firebaseConfig';
+import { TravelPost } from '../../types';
 
 export default function HomeScreen() {
   const router = useRouter();

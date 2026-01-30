@@ -11,7 +11,7 @@ import {
   Keyboard, 
   ActivityIndicator 
 } from 'react-native';
-import { auth, db } from '../../firebaseConfig';
+import { auth, db } from '../../service/firebaseConfig';
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'expo-router';

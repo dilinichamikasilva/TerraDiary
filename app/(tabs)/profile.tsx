@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { auth, db } from '../../firebaseConfig';
-import { signOut } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
-import { BlurView } from 'expo-blur';
+import { signOut } from 'firebase/auth';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import "../../global.css";
+import { auth, db } from '../../service/firebaseConfig';
 
 export default function ProfileScreen() {
   const router = useRouter();

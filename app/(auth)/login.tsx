@@ -11,7 +11,7 @@ import {
   Platform,
   ScrollView
 } from 'react-native';
-import { auth } from '../../firebaseConfig';
+import { auth } from '../../service/firebaseConfig';
 import { 
   signInWithEmailAndPassword, 
   FacebookAuthProvider, 
@@ -35,14 +35,14 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false); 
   const router = useRouter();
 
-  // --- Facebook Auth Hook ---
+  //  Facebook Auth Hook 
   const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID,
     redirectUri: "https://auth.expo.io/@dilini713/terra-diary",
   });
 
 
-  // --- Google Auth Hook ---
+  //  Google Auth Hook 
   const [gRequest, gResponse, gPromptAsync] = Google.useAuthRequest({
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
