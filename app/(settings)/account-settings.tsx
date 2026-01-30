@@ -16,7 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-toast-message';
 import { SettingsHeader } from '../../components/SettingsHeader';
 import { Ionicons } from '@expo/vector-icons';
-
+import { useRouter } from 'expo-router';
 
 interface UserFormData {
   firstName: string;
@@ -27,8 +27,8 @@ interface UserFormData {
 
 export default function AccountSettings() {
   const user = auth.currentUser;
+  const router = useRouter();
   
-  // States
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [profilePic, setProfilePic] = useState<string | null>(user?.photoURL || null);
@@ -50,10 +50,9 @@ export default function AccountSettings() {
           setFormData({
             firstName: data.firstName || '',
             lastName: data.lastName || '',
-            displayName: user.displayName || '',
+            displayName: user.displayName || data.displayName || '',
             country: data.country || '',
           });
-         
           if (data.photoURL) setProfilePic(data.photoURL);
         }
       } catch (error) {
@@ -66,15 +65,14 @@ export default function AccountSettings() {
   }, [user]);
 
   const pickImage = async () => {
-    
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Toast.show({ type: 'error', text1: 'Permission Denied', text2: 'We need camera roll access.' });
+      Toast.show({ type: 'error', text1: 'Permission Denied', text2: 'Need camera roll access' });
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'], 
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.5,
@@ -90,13 +88,13 @@ export default function AccountSettings() {
     setLoading(true);
 
     try {
-      // Update Firebase Auth Profile
+      // Update Firebase Auth 
       await updateProfile(user, { 
         displayName: formData.displayName.trim(),
         photoURL: profilePic 
       });
 
-      //Update Firestore User Document
+      // Update Firestore 
       const userRef = doc(db, "users", user.uid);
       await updateDoc(userRef, {
         firstName: formData.firstName.trim(),
@@ -104,10 +102,16 @@ export default function AccountSettings() {
         displayName: formData.displayName.trim(),
         country: formData.country.trim(),
         photoURL: profilePic, 
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
       });
 
-      Toast.show({ type: 'success', text1: 'Profile Synchronized! 🌍' });
+      Toast.show({ type: 'success', text1: 'Profile Updated! 🌍' });
+      
+      //  Navigate back to Profile
+      setTimeout(() => {
+        router.back();
+      }, 1500);
+
     } catch (error: any) {
       Toast.show({ type: 'error', text1: 'Update failed', text2: error.message });
     } finally {
@@ -128,8 +132,6 @@ export default function AccountSettings() {
       <SettingsHeader title="Edit Profile" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        
-        {/* Profile Picture Section */}
         <View className="items-center mb-8">
           <TouchableOpacity onPress={pickImage} className="relative">
             <View className="w-28 h-28 rounded-full bg-slate-800 border-2 border-emerald-500 overflow-hidden items-center justify-center">
@@ -143,10 +145,8 @@ export default function AccountSettings() {
               <Ionicons name="camera" size={16} color="#020617" />
             </View>
           </TouchableOpacity>
-          <Text className="text-slate-500 text-xs mt-3 uppercase font-bold tracking-widest">Change Photo</Text>
         </View>
 
-        {/* Form Fields */}
         <View>
           <InputField 
             label="Display Name" 
@@ -154,7 +154,6 @@ export default function AccountSettings() {
             onChange={(val: string) => setFormData({...formData, displayName: val})} 
           />
           
-          {/* Fixed the flex-row container */}
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
                <InputField 
@@ -196,7 +195,6 @@ export default function AccountSettings() {
   );
 }
 
-// Fixed props types for InputField
 interface InputFieldProps {
   label: string;
   value: string;

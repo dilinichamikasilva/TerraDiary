@@ -2,22 +2,32 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { 
+  Alert, 
+  ScrollView, 
+  Text, 
+  TouchableOpacity, 
+  View, 
+  Image, 
+  RefreshControl 
+} from 'react-native';
 import "../../global.css";
 import { auth, db } from '../../service/firebaseConfig';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const [stats, setStats] = useState({ memories: 0, countries: 0 });
-  const user = auth.currentUser;
+  const [refreshing, setRefreshing] = useState(false);
+  
+  
+  const [currentUser, setCurrentUser] = useState(auth.currentUser);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (!user) return;
-      const q = query(collection(db, "posts"), where("userId", "==", user.uid));
+  const fetchStats = async () => {
+    if (!currentUser) return;
+    try {
+      const q = query(collection(db, "posts"), where("userId", "==", currentUser.uid));
       const querySnapshot = await getDocs(q);
-      
       const docs = querySnapshot.docs.map(doc => doc.data());
       const uniqueCountries = new Set(docs.map(d => d.locationName?.toLowerCase())).size;
       
@@ -25,10 +35,31 @@ export default function ProfileScreen() {
         memories: querySnapshot.size,
         countries: uniqueCountries
       });
-    };
+    } catch (error) {
+      console.error("Stats fetch error:", error);
+    }
+  };
 
+  
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+     
+      await auth.currentUser?.reload(); 
+      
+      setCurrentUser(auth.currentUser);
+      
+      await fetchStats();
+    } catch (error) {
+      console.error("Refresh error:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
     fetchStats();
-  }, []);
+  }, [currentUser]);
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to leave?", [
@@ -43,20 +74,40 @@ export default function ProfileScreen() {
 
   return (
     <View className="flex-1 bg-slate-950 px-6 pt-20">
-      {/* Background Decor */}
       <View className="absolute -top-10 -right-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px]" />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* User Info */}
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor="#10b981"
+            colors={["#10b981"]}
+          />
+        }
+      >
+        
         <View className="items-center mb-10">
-          <View className="w-24 h-24 bg-slate-800 rounded-full items-center justify-center border-2 border-emerald-500/50 shadow-2xl shadow-emerald-500/20">
-            <Ionicons name="person" size={40} color="#10b981" />
+          <View className="w-24 h-24 bg-slate-800 rounded-full items-center justify-center border-2 border-emerald-500/50 overflow-hidden shadow-2xl shadow-emerald-500/20">
+            {currentUser?.photoURL ? (
+              <Image 
+                
+                key={currentUser.photoURL}
+                source={{ uri: currentUser.photoURL }} 
+                className="w-full h-full" 
+              />
+            ) : (
+              <Ionicons name="person" size={40} color="#10b981" />
+            )}
           </View>
-          <Text className="text-white text-xl font-bold mt-4">{user?.email}</Text>
-          <Text className="text-slate-500 text-sm mt-1">Global Explorer</Text>
+          <Text className="text-white text-2xl font-black mt-4">
+            {currentUser?.displayName || "Global Explorer"}
+          </Text>
+          <Text className="text-slate-500 text-sm mt-1">{currentUser?.email}</Text>
         </View>
 
-        {/* Big Stats Row */}
+        {/* Stats Row */}
         <View className="flex-row space-x-4 mb-8">
           <View className="flex-1 bg-slate-900/50 p-6 rounded-[32px] border border-white/5 items-center">
             <Text className="text-emerald-500 text-3xl font-black">{stats.countries}</Text>
@@ -100,7 +151,6 @@ export default function ProfileScreen() {
     </View>
   );
 }
-
 
 function ProfileMenuBtn({ icon, label, onPress }: { icon: any, label: string, onPress: () => void }) {
   return (
