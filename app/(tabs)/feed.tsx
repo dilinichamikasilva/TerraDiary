@@ -11,7 +11,10 @@ export default function FeedScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchFeed = () => {
+  useEffect(() => {
+    setLoading(true);
+    
+    // Query
     const q = query(
       collection(db, "posts"),
       where("isPublic", "==", true),
@@ -19,39 +22,41 @@ export default function FeedScreen() {
       limit(50)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const feedItems = snapshot.docs.map(doc => ({ 
-        id: doc.id, 
-        ...doc.data() 
-      } as TravelPost));
-      
-      setPosts(feedItems);
-      setLoading(false);
-      setRefreshing(false);
-    });
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const feedItems = snapshot.docs.map(doc => ({ 
+          id: doc.id, 
+          ...doc.data() 
+        } as TravelPost));
+        
+        setPosts(feedItems);
+        setLoading(false);
+        setRefreshing(false);
+      },
+      (error) => {
+        //console.error("Feed Error:", error.code, error.message);
+        setLoading(false);
+        setRefreshing(false);
+      }
+    );
 
-    return unsubscribe;
-  };
-
-  useEffect(() => {
-    const unsubscribe = fetchFeed();
     return () => unsubscribe();
   }, []);
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    
+  };
+
   return (
     <View className="flex-1 bg-slate-950">
-      {/* Top Glow Decor */}
       <View className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px]" />
 
       <ScrollView 
         className="px-6 pt-20"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={() => fetchFeed()} 
-            tintColor="#10b981" 
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />
         }
       >
         <View className="mb-8">
@@ -66,14 +71,13 @@ export default function FeedScreen() {
              <Text className="text-slate-500 font-medium">The world is quiet right now...</Text>
           </View>
         ) : (
-          <View className="pb-20">
+          <View className="pb-32">
             {posts.map((post, index) => (
-              <View key={post.id}>                
-                <TimelineItem 
-                  item={post} 
-                  isLast={index === posts.length - 1} 
-                />
-              </View>
+              <TimelineItem 
+                key={post.id} 
+                item={post} 
+                isLast={index === posts.length - 1} 
+              />
             ))}
           </View>
         )}

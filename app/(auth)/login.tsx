@@ -37,86 +37,110 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false); 
   const router = useRouter();
 
-  // Facebook Config
+  const REDIRECT_URI = 'https://auth.expo.io/@dilini713/terra-diary';
+
   const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID,
   });
 
-  // Google Config
   const [gRequest, gResponse, gPromptAsync] = Google.useAuthRequest({
-  
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-});
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    redirectUri: REDIRECT_URI,
+  });
 
-  // Handle Social Responses
+  //  Handle Firebase Errors 
+  const handleAuthError = (error: any) => {
+    let message = "An unexpected error occurred.";
+
+    switch (error.code) {
+      case 'auth/invalid-credential':
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+        message = "Invalid email or password. Please try again.";
+        break;
+      case 'auth/invalid-email':
+        message = "Please enter a valid email address.";
+        break;
+      case 'auth/user-disabled':
+        message = "This account has been disabled.";
+        break;
+      case 'auth/too-many-requests':
+        message = "Too many failed attempts. Please try again later.";
+        break;
+      case 'auth/network-request-failed':
+        message = "Network error. Check your internet connection.";
+        break;
+      default:
+        message = error.message || message;
+    }
+
+    Toast.show({ type: 'error', text1: 'Login Failed', text2: message });
+  };
+
+  //  SOCIAL LOGIN 
+  const handleSocialLogin = async (credential: any, providerName: string) => {
+    setLoading(true);
+    try {
+      const result = await signInWithCredential(auth, credential);
+      await syncUserToFirestore(result.user); 
+      Toast.show({ type: 'success', text1: `Welcome, ${result.user.displayName}! 🎉` });
+    } catch (error: any) {
+      handleAuthError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (fbResponse?.type === 'success') {
       const { access_token } = fbResponse.params;
       handleSocialLogin(FacebookAuthProvider.credential(access_token), 'Facebook');
     }
     if (gResponse?.type === 'success') {
-      const { id_token } = gResponse.params;
-      handleSocialLogin(GoogleAuthProvider.credential(id_token), 'Google');
+      const idToken = gResponse.authentication?.idToken;
+      if (idToken) {
+        handleSocialLogin(GoogleAuthProvider.credential(idToken), 'Google');
+      }
+    }
+    
+    if (fbResponse?.type === 'cancel' || gResponse?.type === 'cancel' || fbResponse?.type === 'error' || gResponse?.type === 'error') {
+        setLoading(false);
     }
   }, [fbResponse, gResponse]);
 
-  const handleSocialLogin = async (credential: any, providerName: string) => {
-    setLoading(true);
-    try {
-      const result = await signInWithCredential(auth, credential);
-      await syncUserToFirestore(result.user); 
-      
-      Toast.show({ type: 'success', text1: `Logged in with ${providerName} 🎉` });
-      router.replace("/(tabs)/home"); 
-    } catch (error: any) {
-      Toast.show({ type: 'error', text1: 'Social Login Failed', text2: error.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  //  EMAIL LOGIN 
   const handleEmailLogin = async () => {
-    if (!email || !password) {
-      Toast.show({ type: 'info', text1: 'Required', text2: 'Please fill in all fields' });
+    if (!email.trim() || !password.trim()) {
+      Toast.show({ type: 'info', text1: 'Missing Fields', text2: 'Please enter both email and password' });
       return;
     }
+    
     setLoading(true);
     try {
-      await loginUser(email, password);
+      await loginUser(email.trim(), password.trim());
+      Toast.show({ type: 'success', text1: 'Login Successful! 🎉' });
       router.replace("/(tabs)/home");
     } catch (error: any) {
-      Toast.show({ 
-        type: 'error', 
-        text1: 'Login Failed', 
-        text2: 'Invalid email or password.' 
-      });
+      handleAuthError(error);
     } finally {
-      setLoading(false);
+      setLoading(false); 
     }
   };
-
-  useEffect(() => {
-  if (gResponse?.type === 'success') {
-    console.log("Google Response:", gResponse);
-    const { id_token } = gResponse.params;
-    handleSocialLogin(GoogleAuthProvider.credential(id_token), 'Google');
-  }
-}, [gResponse]);
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View className="flex-1 bg-slate-950">
-        {/* Decorative Background Glows */}
         <View className="absolute top-[-50] left-[-50] w-72 h-72 bg-emerald-500/10 rounded-full blur-[80px]" />
         <View className="absolute bottom-[-50] right-[-50] w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]" />
 
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
-          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             <View className="px-6 items-center">
               
-              {/* Logo/Header */}
               <View className="items-center mb-10">
                 <View className="bg-emerald-500/10 p-4 rounded-3xl border border-emerald-500/20 mb-4">
                   <Ionicons name="log-in-outline" size={48} color="#10b981" />
@@ -125,7 +149,6 @@ export default function LoginScreen() {
                 <Text className="text-slate-400 mt-2 text-center text-base font-medium">Your adventures are waiting.</Text>
               </View>
 
-              {/* Form Container */}
               <View className="w-full bg-slate-900/60 p-6 rounded-[40px] border border-slate-800/50 shadow-2xl backdrop-blur-xl">
                 <TextInput
                   className="bg-slate-800/50 p-4 rounded-2xl mb-4 text-white border border-slate-700/50"
@@ -135,6 +158,7 @@ export default function LoginScreen() {
                   autoCapitalize="none"
                   value={email}
                   onChangeText={setEmail}
+                  editable={!loading}
                 />
                 
                 <TextInput
@@ -144,43 +168,47 @@ export default function LoginScreen() {
                   secureTextEntry
                   value={password}
                   onChangeText={setPassword}
+                  editable={!loading}
                 />
 
                 <TouchableOpacity 
                   onPress={handleEmailLogin} 
                   disabled={loading}
                   className={`p-5 rounded-2xl items-center ${loading ? 'bg-emerald-800' : 'bg-emerald-500'}`}
+                  activeOpacity={0.8}
                 >
-                  {loading ? <ActivityIndicator color="#020617" /> : <Text className="text-slate-950 font-black text-lg uppercase tracking-wider">Login</Text>}
+                  {loading ? (
+                    <ActivityIndicator color="#020617" />
+                  ) : (
+                    <Text className="text-slate-950 font-black text-lg uppercase tracking-wider">Login</Text>
+                  )}
                 </TouchableOpacity>
 
-                {/* Divider */}
                 <View className="flex-row items-center my-8">
                   <View className="flex-1 h-[1px] bg-slate-800" />
                   <Text className="text-slate-500 mx-4 text-xs font-bold uppercase tracking-widest">OR</Text>
                   <View className="flex-1 h-[1px] bg-slate-800" />
                 </View>
 
-                {/* Social Buttons */}
                 <View className="flex-row justify-between mb-2">
                   <TouchableOpacity 
-                    disabled={!gRequest}
-                    onPress={() => gPromptAsync()}
-                    className="bg-slate-800/50 p-4 rounded-2xl w-[48%] items-center border border-slate-700/50" 
+                    disabled={!gRequest || loading}
+                    onPress={() => { setLoading(true); gPromptAsync(); }}
+                    className={`bg-slate-800/50 p-4 rounded-2xl w-[48%] items-center border border-slate-700/50 ${(!gRequest || loading) ? 'opacity-50' : ''}`}
                   >
                     <AntDesign name="google" size={24} color="#ea4335" />
                   </TouchableOpacity>
 
                   <TouchableOpacity 
-                    disabled={!fbRequest}
-                    onPress={() => fbPromptAsync()}
-                    className="bg-slate-800/50 p-4 rounded-2xl w-[48%] items-center border border-slate-700/50" 
+                    disabled={!fbRequest || loading}
+                    onPress={() => { setLoading(true); fbPromptAsync(); }}
+                    className={`bg-slate-800/50 p-4 rounded-2xl w-[48%] items-center border border-slate-700/50 ${(!fbRequest || loading) ? 'opacity-50' : ''}`}
                   >
                     <FontAwesome5 name="facebook" size={24} color="#1877f2" />
                   </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity onPress={() => router.push("/(auth)/register")} className="mt-6">
+                <TouchableOpacity onPress={() => router.push("/(auth)/register")} className="mt-6" disabled={loading}>
                   <Text className="text-slate-400 text-center font-medium">
                     New traveler? <Text className="text-emerald-400 font-bold underline">Register</Text>
                   </Text>

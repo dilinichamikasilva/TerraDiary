@@ -8,19 +8,18 @@ import { getFirestore } from "firebase/firestore"
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
+
 const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
+  apiKey: "AIzaSyCk_qST3oUrYvETaIOVHsSelkq2BJVBxgY",
+  authDomain: "terra-diary-2026.firebaseapp.com",
+  projectId: "terra-diary-2026",
+  storageBucket: "terra-diary-2026.firebasestorage.app",
+  messagingSenderId: "818258924002",
+  appId: "1:818258924002:web:a4f413ec8f1d77882669bb"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
 
 export const auth = initializeAuth(app , {
     persistence : getReactNativePersistence(AsyncStorage)

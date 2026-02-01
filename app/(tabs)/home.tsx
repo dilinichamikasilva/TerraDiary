@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View, RefreshControl } from 'react-native';
 import { StatCard, TimelineItem } from '../../components/HomeComponents';
 import "../../global.css";
 import { auth, db } from '../../service/firebaseConfig';
@@ -13,34 +13,56 @@ export default function HomeScreen() {
   const [entries, setEntries] = useState<TravelPost[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<TravelPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [stats, setStats] = useState({ countries: 0, memories: 0 });
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    
+    const user = auth.currentUser;
 
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    // Build Query 
     const q = query(
       collection(db, "posts"),
-      where("userId", "==", auth.currentUser.uid),
+      where("userId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({ 
-        id: doc.id, 
-        ...doc.data() 
-      } as TravelPost));
-      
-      setEntries(docs);
-      setFilteredEntries(docs);
-      
-      const uniqueCountries = new Set(docs.map(d => d.locationName?.trim().toLowerCase())).size;
-      setStats({ countries: uniqueCountries, memories: docs.length });
-      setLoading(false);
-    });
+  
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const docs = snapshot.docs.map(doc => ({ 
+          id: doc.id, 
+          ...doc.data() 
+        } as TravelPost));
+        
+        setEntries(docs);
+        setFilteredEntries(docs);
+        
+        
+        const uniqueCountries = new Set(
+          docs.map(d => d.locationName?.trim().toLowerCase()).filter(Boolean)
+        ).size;
+        
+        setStats({ countries: uniqueCountries, memories: docs.length });
+        setLoading(false);
+        setRefreshing(false);
+      }, 
+      (error) => {
+        
+        console.error("Firestore Error in HomeScreen:", error.code, error.message);
+        setLoading(false);
+        setRefreshing(false);
+      }
+    );
 
-    return unsubscribe;
-  }, []);
+    return () => unsubscribe();
+  }, [auth.currentUser]); 
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
@@ -48,8 +70,8 @@ export default function HomeScreen() {
       setFilteredEntries(entries);
     } else {
       const filtered = entries.filter(item => 
-        item.title.toLowerCase().includes(text.toLowerCase()) || 
-        item.locationName.toLowerCase().includes(text.toLowerCase())
+        item.title?.toLowerCase().includes(text.toLowerCase()) || 
+        item.locationName?.toLowerCase().includes(text.toLowerCase())
       );
       setFilteredEntries(filtered);
     }
@@ -57,9 +79,17 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-slate-950">
+      {/* Background Decor */}
       <View className="absolute top-20 left-[-50] w-80 h-80 bg-emerald-500/10 rounded-full blur-[100px]" />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 140 }} className="px-6 pt-16">
+      <ScrollView 
+        contentContainerStyle={{ paddingBottom: 140 }} 
+        className="px-6 pt-16"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(true)} tintColor="#10b981" />
+        }
+      >
+        {/* Header & Stats */}
         <View className="mb-6">
           <Text className="text-white text-3xl font-black mb-4">Your Vault</Text>
           <View className="flex-row space-x-3">
@@ -68,6 +98,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* Search Bar */}
         <View className="bg-slate-900/50 rounded-2xl border border-white/5 px-4 py-1 flex-row items-center mb-8">
           <Ionicons name="search" size={18} color="#64748b" />
           <TextInput 
@@ -79,19 +110,34 @@ export default function HomeScreen() {
           />
         </View>
 
+        {/* Content State */}
         {loading ? (
-          <ActivityIndicator color="#10b981" />
+          <View className="mt-20">
+            <ActivityIndicator size="large" color="#10b981" />
+            <Text className="text-slate-500 text-center mt-4 italic">Opening the vault...</Text>
+          </View>
         ) : filteredEntries.length === 0 ? (
-          <Text className="text-slate-500 text-center mt-10">No memories found.</Text>
+          <View className="mt-20 items-center">
+            <Ionicons name="cloud-offline-outline" size={48} color="#334155" />
+            <Text className="text-slate-500 text-center mt-4 text-base">
+              {searchQuery ? "No matches found." : "Your journal is empty."}
+            </Text>
+          </View>
         ) : (
           filteredEntries.map((item, index) => (
-            <TimelineItem key={item.id} item={item} isLast={index === filteredEntries.length - 1} />
+            <TimelineItem 
+              key={item.id} 
+              item={item} 
+              isLast={index === filteredEntries.length - 1} 
+            />
           ))
         )}
       </ScrollView>
 
+      {/* Floating Action Button */}
       <TouchableOpacity 
         onPress={() => router.push("/add-entry")}
+        activeOpacity={0.7}
         className="absolute right-6 bottom-28 bg-emerald-500 w-16 h-16 rounded-full items-center justify-center shadow-2xl shadow-emerald-500/50"
       >
         <Ionicons name="add" size={32} color="#020617" />
