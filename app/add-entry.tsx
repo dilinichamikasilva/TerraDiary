@@ -12,12 +12,29 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import "../global.css";
 
 const MOODS = [
+  //  VIBES & ATMOSPHERE 
   { emoji: '☀️', label: 'Sunny' },
-  { emoji: '🏔️', label: 'Adventurous' },
-  { emoji: '🍜', label: 'Foodie' },
-  { emoji: '🌊', label: 'Relaxed' },
   { emoji: '🌃', label: 'City' },
+  { emoji: '✨', label: 'Magical' },
+  { emoji: '🕯️', label: 'Cozy' },
+  { emoji: '🌧️', label: 'Moody' },
+  { emoji: '☁️', label: 'Chilled' },
+
+  //  ACTIVITIES & NATURE 
+  { emoji: '🏔️', label: 'Adventurous' },
   { emoji: '🏖️', label: 'Beach' },
+  { emoji: '🌲', label: 'Nature' },
+  { emoji: '🚲', label: 'Active' },
+  { emoji: '🧘', label: 'Zen' },
+  { emoji: '📸', label: 'Sightseeing' },
+
+  //  FOOD & SOCIAL 
+  { emoji: '🍜', label: 'Foodie' },
+  { emoji: '☕', label: 'Caffeine' },
+  { emoji: '🍹', label: 'Party' },
+  { emoji: '🎭', label: 'Cultural' },
+  { emoji: '🛍️', label: 'Shopping' },
+  { emoji: '🐾', label: 'Pet Friendly' },
 ];
 
 export default function AddEntryScreen() {
@@ -38,7 +55,7 @@ export default function AddEntryScreen() {
   const [predictions, setPredictions] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  //   Search Logic 
+  // Search Logic 
   const fetchPredictions = (text: string) => {
     setLocationName(text);
     
@@ -84,7 +101,7 @@ export default function AddEntryScreen() {
     setPredictions([]); 
   };
 
-  //  GPS Detection 
+  // GPS Detection 
   const handleDetectLocation = async () => {
     setLoading(true);
     let { status } = await Location.requestForegroundPermissionsAsync();
@@ -105,7 +122,7 @@ export default function AddEntryScreen() {
     setLoading(false);
   };
 
-  //  Image Logic 
+  // Image Logic 
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') return Alert.alert("Denied", "Camera access needed.");
@@ -144,7 +161,7 @@ export default function AddEntryScreen() {
     } catch { return null; }
   };
 
-  //  Save to Firestore 
+  // Save to Firestore 
   const handleSave = async () => {
     const user = auth.currentUser;
     if (!user) return Alert.alert("Auth Error", "Please log in.");
@@ -273,19 +290,28 @@ export default function AddEntryScreen() {
             ))}
           </ScrollView>
 
-          {/* Mood Section */}
+          {/* Mood Section  */}
           <Text className="text-slate-500 font-black uppercase text-[10px] tracking-[3px] mb-4 ml-1">Current Vibe</Text>
-          <View className="flex-row justify-between mb-8">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row mb-8">
             {MOODS.map((m) => (
               <TouchableOpacity 
                 key={m.label} 
                 onPress={() => setSelectedMood(m.emoji)} 
-                className={`w-12 h-12 rounded-2xl items-center justify-center border-2 ${selectedMood === m.emoji ? 'bg-emerald-500/20 border-emerald-500' : 'bg-slate-900 border-transparent'}`}
+                className={`w-16 h-20 mr-3 rounded-2xl items-center justify-center border-2 ${
+                  selectedMood === m.emoji 
+                    ? 'bg-emerald-500/20 border-emerald-500' 
+                    : 'bg-slate-900 border-transparent'
+                }`}
               >
                 <Text className="text-2xl">{m.emoji}</Text>
+                <Text className={`text-[8px] font-bold uppercase mt-1 ${
+                  selectedMood === m.emoji ? 'text-emerald-500' : 'text-slate-500'
+                }`}>
+                  {m.label}
+                </Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
 
           {/* Description */}
           <TextInput 
