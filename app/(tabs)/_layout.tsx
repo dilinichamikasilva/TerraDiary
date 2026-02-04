@@ -52,6 +52,20 @@ export default function TabLayout() {
         }}
       />
 
+      <Tabs.Screen
+        name="passport" 
+        options={{
+          title: 'Passport',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons 
+              name={focused ? "ribbon" : "ribbon-outline"} 
+              size={size} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+
      
       <Tabs.Screen
         name="profile"
