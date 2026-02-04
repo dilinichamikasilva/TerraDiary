@@ -7,7 +7,8 @@ import {
   TouchableOpacity, 
   Alert, 
   ActivityIndicator,
-  AlertButton
+  AlertButton,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TravelPost } from '../types';
@@ -39,13 +40,12 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
   
   // LIVE PROFILE STATE
   const [authorName, setAuthorName] = useState(item.userName || 'Explorer');
-  const [authorPhoto, setAuthorPhoto] = useState<string | null>(null);
+  const [authorPhoto, setAuthorPhoto] = useState<string | null>(item.userPhoto || null);
 
-  //  EFFECT: Sync Live User Data (Name/Photo)
+  
   useEffect(() => {
     if (!item.userId) return;
 
-  
     const userRef = doc(db, "users", item.userId);
     const unsubscribe = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -53,6 +53,8 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
         setAuthorName(userData.displayName || item.userName || 'Explorer');
         setAuthorPhoto(userData.photoURL || null);
       }
+    }, (error) => {
+      console.error("User sync error:", error);
     });
 
     return () => unsubscribe();
@@ -72,13 +74,14 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
         return;
       }
 
-      const filename = `${item.title.replace(/\s+/g, '_')}.jpg`;
-      const fileUri = FileSystem.cacheDirectory + filename;
+      const filename = `${item.title.replace(/\s+/g, '_')}_${Date.now()}.jpg`;
+      const fileUri = `${FileSystem.cacheDirectory}${filename}`;
 
       const downloadResult = await FileSystem.downloadAsync(imageUrl, fileUri);
       await MediaLibrary.saveToLibraryAsync(downloadResult.uri);
       Alert.alert("Success", "Memory saved to gallery! 📸");
     } catch (error) {
+      console.error(error);
       Alert.alert("Error", "Failed to save image.");
     } finally {
       setDownloading(false);
@@ -90,7 +93,10 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
     const options: AlertButton[] = [
       { 
         text: "Save to Gallery 📥", 
-        onPress: () => item.imageUrls?.[0] && saveImageToGallery(item.imageUrls[0]) 
+        onPress: () => {
+          const url = item.imageUrls?.[0];
+          if (url) saveImageToGallery(url);
+        }
       },
     ];
 
@@ -125,72 +131,93 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
   };
 
   const handleEditDescription = () => {
-    Alert.prompt(
-      "Edit Description",
-      "Update your note:",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Update", 
-          onPress: async (newDesc: string | undefined) => {
-  if (newDesc) {
-    await updateDoc(doc(db, "posts", item.id), { description: newDesc });
-  }
-}
-        }
-      ],
-      'plain-text',
-      item.description
-    );
+    if (Platform.OS === 'ios') {
+      Alert.prompt(
+        "Edit Description",
+        "Update your note:",
+        [
+          { text: "Cancel", style: "cancel" },
+          { 
+            text: "Update", 
+            onPress: async (newDesc?: string) => {
+              if (newDesc !== undefined) await updateDoc(doc(db, "posts", item.id), { description: newDesc });
+            } 
+          }
+        ],
+        'plain-text',
+        item.description
+      );
+    } else {
+      Alert.alert("Note", "Description editing is currently optimized for iOS. Android update coming soon!");
+    }
   };
 
   return (
     <View className="flex-row">
       {/* TIMELINE LEFT LINE */}
       <View className="items-center mr-4">
-        <View className="w-4 h-4 rounded-full border-2 border-slate-950 bg-emerald-500 z-10 mt-1 shadow-sm" />
+        <View className="w-4 h-4 rounded-full border-2 border-slate-950 bg-emerald-500 z-10 mt-2 shadow-sm" />
         {!isLast && <View className="w-[2px] flex-1 bg-slate-800/50 my-1" />}
       </View>
 
       {/* CONTENT CARD */}
       <View className="flex-1 mb-10">
-        <View className="flex-row justify-between items-center mb-2 px-1">
-          <Text className="text-slate-600 text-[10px] font-black uppercase tracking-widest">{dateString}</Text>
-          
+        
+        {/* ENHANCED PROFILE HEADER */}
+        <View className="flex-row justify-between items-center mb-4 px-1">
           <View className="flex-row items-center">
-            {/* LIVE AUTHOR NAME & PHOTO */}
-            <View className="flex-row items-center mr-3">
-              {authorPhoto && (
-                <Image source={{ uri: authorPhoto }} className="w-4 h-4 rounded-full mr-1.5 border border-emerald-500/30" />
+            <View className="mr-3 relative">
+              {authorPhoto ? (
+                <Image 
+                  source={{ uri: authorPhoto }} 
+                  className="w-12 h-12 rounded-full border-2 border-emerald-500/20" 
+                />
+              ) : (
+                <View className="w-12 h-12 rounded-full bg-slate-800 items-center justify-center border-2 border-slate-700">
+                  <Ionicons name="person" size={20} color="#475569" />
+                </View>
               )}
-              <Text className="text-emerald-500/60 text-[10px] font-bold">By {authorName}</Text>
+              <View className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-950" />
             </View>
 
-            <TouchableOpacity onPress={handleOptionsPress} className="p-1">
-              <Ionicons name="ellipsis-horizontal" size={18} color="#475569" />
-            </TouchableOpacity>
+            <View>
+              <Text className="text-white font-bold text-base">
+                {isOwner ? "You" : authorName}
+              </Text>
+              <Text className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
+                {dateString}
+              </Text>
+            </View>
           </View>
+
+          <TouchableOpacity 
+            onPress={handleOptionsPress} 
+            className="bg-slate-900/80 w-10 h-10 rounded-full items-center justify-center border border-white/5"
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color="#94a3b8" />
+          </TouchableOpacity>
         </View>
 
+        {/* IMAGE & POST BODY */}
         <View className="bg-slate-900/40 rounded-[32px] p-2 border border-white/5 overflow-hidden">
           {item.imageUrls && item.imageUrls.length > 0 && (
             <View className="relative">
               <Image 
                 source={{ uri: item.imageUrls[0].replace('/upload/', '/upload/f_auto,q_auto,w_800/') }} 
-                className="w-full h-64 rounded-[28px]" 
+                className="w-full h-72 rounded-[28px]" 
                 resizeMode="cover"
               />
               <TouchableOpacity 
                 onPress={() => {
-                  const firstUrl = item.imageUrls?.[0];
-                  if (firstUrl) saveImageToGallery(firstUrl);
+                  const url = item.imageUrls?.[0];
+                  if (url) saveImageToGallery(url);
                 }}
-                className="absolute top-4 right-4 bg-slate-950/60 w-10 h-10 rounded-full items-center justify-center border border-white/10"
+                className="absolute top-4 right-4 bg-slate-950/60 w-12 h-12 rounded-full items-center justify-center border border-white/10"
               >
                 {downloading ? (
                   <ActivityIndicator size="small" color="#10b981" />
                 ) : (
-                  <Ionicons name="download-outline" size={20} color="white" />
+                  <Ionicons name="download-outline" size={24} color="white" />
                 )}
               </TouchableOpacity>
             </View>
@@ -198,20 +225,38 @@ export function TimelineItem({ item, isLast }: { item: TravelPost, isLast: boole
 
           <View className="p-4">
             <View className="flex-row justify-between items-center mb-3">
-              <View className="flex-1 flex-row items-center bg-emerald-500/10 px-2.5 py-1.5 rounded-xl border border-emerald-500/20 mr-3">
-                <Ionicons name="location-sharp" size={12} color="#10b981" />
-                <Text className="text-emerald-400 font-bold text-[10px] uppercase flex-1 ml-1.5" numberOfLines={1}>
+              <View className="flex-1 flex-row items-center bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/20 mr-3">
+                <Ionicons name="location-sharp" size={14} color="#10b981" />
+                <Text className="text-emerald-400 font-bold text-[11px] uppercase flex-1 ml-2" numberOfLines={1}>
                   {item.locationName}
                 </Text>
               </View>
               {item.mood && (
-                <View className="bg-slate-800 w-10 h-10 rounded-full items-center justify-center">
-                  <Text className="text-xl">{item.mood}</Text>
+                <View className="bg-slate-800 w-11 h-11 rounded-full items-center justify-center border border-white/5">
+                  <Text className="text-2xl">{item.mood}</Text>
                 </View>
               )}
             </View>
-            <Text className="text-white text-xl font-bold mb-2">{item.title}</Text>
-            {item.description && <Text className="text-slate-400 text-sm leading-6" numberOfLines={3}>{item.description}</Text>}
+            
+            <Text className="text-white text-2xl font-black mb-2">{item.title}</Text>
+            {item.description && (
+              <Text className="text-slate-400 text-sm leading-6 mb-2" numberOfLines={3}>
+                {item.description}
+              </Text>
+            )}
+            
+            {isOwner && (
+              <View className="flex-row items-center mt-2">
+                <Ionicons 
+                  name={item.isPublic ? "earth" : "lock-closed"} 
+                  size={12} 
+                  color={item.isPublic ? "#10b981" : "#64748b"} 
+                />
+                <Text className={`text-[10px] ml-1 font-bold uppercase tracking-tighter ${item.isPublic ? 'text-emerald-500' : 'text-slate-500'}`}>
+                  {item.isPublic ? "Visible in Feed" : "Private Vault Only"}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </View>
