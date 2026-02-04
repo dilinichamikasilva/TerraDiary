@@ -11,4 +11,5 @@ export interface TravelPost {
   createdAt?: any; 
   latitude?: number;
   longitude?: number;
+  userPhoto?: string;
 }

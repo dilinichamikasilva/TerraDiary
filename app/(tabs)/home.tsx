@@ -17,23 +17,21 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [stats, setStats] = useState({ countries: 0, memories: 0 });
 
-  useEffect(() => {
-    
-    const user = auth.currentUser;
+  
+  const currentUser = auth.currentUser;
 
-    if (!user) {
+  useEffect(() => {
+    if (!currentUser) {
       setLoading(false);
       return;
     }
 
-    // Build Query 
     const q = query(
       collection(db, "posts"),
-      where("userId", "==", user.uid),
+      where("userId", "==", currentUser.uid),
       orderBy("createdAt", "desc")
     );
 
-  
     const unsubscribe = onSnapshot(q, 
       (snapshot) => {
         const docs = snapshot.docs.map(doc => ({ 
@@ -44,9 +42,8 @@ export default function HomeScreen() {
         setEntries(docs);
         setFilteredEntries(docs);
         
-        
         const uniqueCountries = new Set(
-          docs.map(d => d.locationName?.trim().toLowerCase()).filter(Boolean)
+          docs.map(d => d.locationName?.split(',').pop()?.trim().toLowerCase()).filter(Boolean)
         ).size;
         
         setStats({ countries: uniqueCountries, memories: docs.length });
@@ -54,15 +51,14 @@ export default function HomeScreen() {
         setRefreshing(false);
       }, 
       (error) => {
-        
-        console.error("Firestore Error in HomeScreen:", error.code, error.message);
+        console.error("Firestore Error:", error);
         setLoading(false);
         setRefreshing(false);
       }
     );
 
     return () => unsubscribe();
-  }, [auth.currentUser]); 
+  }, [currentUser]); 
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
@@ -79,7 +75,6 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-slate-950">
-      {/* Background Decor */}
       <View className="absolute top-20 left-[-50] w-80 h-80 bg-emerald-500/10 rounded-full blur-[100px]" />
 
       <ScrollView 
@@ -93,7 +88,7 @@ export default function HomeScreen() {
         <View className="mb-6">
           <Text className="text-white text-3xl font-black mb-4">Your Vault</Text>
           <View className="flex-row space-x-3">
-            <StatCard icon="earth" count={stats.countries} label="Locations" color="#10b981" />
+            <StatCard icon="earth" count={stats.countries} label="Countries" color="#10b981" />
             <StatCard icon="bookmarks" count={stats.memories} label="Memories" color="#3b82f6" />
           </View>
         </View>
@@ -110,34 +105,33 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* Content State */}
+        {/* Content Section */}
         {loading ? (
           <View className="mt-20">
             <ActivityIndicator size="large" color="#10b981" />
-            <Text className="text-slate-500 text-center mt-4 italic">Opening the vault...</Text>
           </View>
         ) : filteredEntries.length === 0 ? (
           <View className="mt-20 items-center">
             <Ionicons name="cloud-offline-outline" size={48} color="#334155" />
-            <Text className="text-slate-500 text-center mt-4 text-base">
-              {searchQuery ? "No matches found." : "Your journal is empty."}
-            </Text>
+            <Text className="text-slate-500 text-center mt-4">No memories found.</Text>
           </View>
         ) : (
           filteredEntries.map((item, index) => (
             <TimelineItem 
               key={item.id} 
-              item={item} 
+              item={{
+                ...item,
+                userName: currentUser?.displayName || item.userName,
+                userPhoto: currentUser?.photoURL || item.userPhoto
+              }} 
               isLast={index === filteredEntries.length - 1} 
             />
           ))
         )}
       </ScrollView>
 
-      {/* Floating Action Button */}
       <TouchableOpacity 
         onPress={() => router.push("/add-entry")}
-        activeOpacity={0.7}
         className="absolute right-6 bottom-28 bg-emerald-500 w-16 h-16 rounded-full items-center justify-center shadow-2xl shadow-emerald-500/50"
       >
         <Ionicons name="add" size={32} color="#020617" />
