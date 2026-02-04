@@ -38,7 +38,7 @@
 
 1. **Clone the repository**
    ```bash
-   git clone [https://github.com/your-username/terra-diary.git]https://github.com/dilinichamikasilva/TerraDiary.git
+   git clone https://github.com/dilinichamikasilva/TerraDiary.git
    cd terra-diary
    ```
 
