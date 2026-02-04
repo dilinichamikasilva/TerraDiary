@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Dimensions, Image, StyleSheet, Text, View, Platform } from 'react-native';
 import MapView, { Callout, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { mapStyle } from '../../constants/mapstyle';
@@ -14,9 +14,11 @@ export default function MapScreen() {
   useEffect(() => {
     if (!currentUser) return;
 
+    // Composite Query
     const q = query(
       collection(db, "posts"),
-      where("userId", "==", currentUser.uid)
+      where("userId", "==", currentUser.uid),
+      orderBy("createdAt", "desc")
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -25,10 +27,28 @@ export default function MapScreen() {
         ...doc.data() 
       } as TravelPost));
       setPosts(myItems);
+    }, (error) => {
+      console.error("Firestore Error:", error);
     });
 
     return unsubscribe;
   }, [currentUser]);
+
+  
+  const groupedPosts = useMemo(() => {
+    const groups: { [key: string]: TravelPost[] } = {};
+    
+    posts.forEach(post => {
+      if (post.latitude && post.longitude) {
+        // Rounding to 4 decimals groups posts within ~11 meters of each other
+        const key = `${Number(post.latitude).toFixed(4)}_${Number(post.longitude).toFixed(4)}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(post);
+      }
+    });
+    
+    return Object.values(groups);
+  }, [posts]);
 
   return (
     <View className="flex-1 bg-slate-950">
@@ -43,81 +63,78 @@ export default function MapScreen() {
           longitudeDelta: 5,
         }}
       >
-        {posts.map((post) => {
-          const hasCoords = post.latitude && post.longitude;
-          const displayImage = post.imageUrls && post.imageUrls.length > 0 
-            ? post.imageUrls[0] 
-            : null;
-
-          if (!hasCoords) return null;
+        {groupedPosts.map((locationGroup) => {
+          const latestPost = locationGroup[0];
+          const count = locationGroup.length;
+          const displayImage = latestPost.imageUrls?.[0];
 
           return (
             <Marker
-              key={post.id}
+              key={latestPost.id}
               coordinate={{ 
-                latitude: Number(post.latitude), 
-                longitude: Number(post.longitude) 
+                latitude: Number(latestPost.latitude), 
+                longitude: Number(latestPost.longitude) 
               }}
               anchor={{ x: 0.5, y: 1 }}
             >
-              {/*  CUSTOM PHOTO PIN  */}
+              
               <View className="items-center">
                 <View className="bg-white p-1 rounded-2xl shadow-xl border-2 border-emerald-500">
                   {displayImage ? (
-                    <Image 
-                      source={{ uri: displayImage }} 
-                      className="w-12 h-12 rounded-xl"
-                    />
+                    <Image source={{ uri: displayImage }} className="w-14 h-14 rounded-xl" />
                   ) : (
-                    <View className="w-12 h-12 bg-slate-800 rounded-xl items-center justify-center">
-                      <Ionicons name="image-outline" size={20} color="white" />
+                    <View className="w-14 h-14 bg-slate-800 rounded-xl items-center justify-center">
+                      <Ionicons name="image" size={20} color="white" />
                     </View>
                   )}
-                  {/* Title Badge over the photo */}
-                  <View className="absolute -top-2 -right-2 bg-emerald-500 px-2 py-0.5 rounded-full">
-                    <Text className="text-white text-[8px] font-black uppercase">
-                       {post.mood || '📍'}
-                    </Text>
+                  
+                  {/* Total Visits Count Badge */}
+                  {count > 1 && (
+                    <View className="absolute -top-3 -left-3 bg-blue-600 w-6 h-6 rounded-full items-center justify-center border-2 border-white shadow-lg">
+                      <Text className="text-white text-[10px] font-black">{count}</Text>
+                    </View>
+                  )}
+                  
+                  {/* Latest Mood Emoji */}
+                  <View className="absolute -top-3 -right-3 bg-emerald-500 w-7 h-7 rounded-full items-center justify-center border-2 border-white shadow-lg">
+                    <Text className="text-[12px]">{latestPost.mood || '📍'}</Text>
                   </View>
                 </View>
-                {/* Pointer Triangle */}
                 <View style={styles.triangle} />
               </View>
 
-              
+              {/*  HISTORY CALLOUT  */}
               <Callout tooltip>
-                <View className="bg-slate-900 p-0 rounded-[30px] border border-white/10 w-64 shadow-2xl overflow-hidden">
-                  {displayImage && (
-                    <Image 
-                      source={{ uri: displayImage }} 
-                      style={styles.calloutImage}
-                    />
-                  )}
-                  
-                  <View className="p-4">
-                    <Text className="text-white font-black text-lg mb-1">
-                      {post.title || "Untitled Adventure"}
-                    </Text>
-                    
-                    <View className="flex-row items-center mb-2">
-                      <Ionicons name="location" size={12} color="#10b981" />
-                      <Text className="text-emerald-500 text-[10px] font-bold ml-1 uppercase tracking-tighter" numberOfLines={1}>
-                        {post.locationName || "Unknown Location"}
-                      </Text>
-                    </View>
+                <View className="bg-slate-900 rounded-[32px] border border-white/10 w-72 shadow-2xl overflow-hidden p-4">
+                  <Text className="text-white font-black text-lg mb-1" numberOfLines={1}>
+                    {latestPost.locationName || "Travel History"}
+                  </Text>
+                  <Text className="text-emerald-500 text-[10px] font-black uppercase tracking-widest mb-4">
+                    {count} {count === 1 ? 'Visit' : 'Visits'} Recorded
+                  </Text>
 
-                    <Text className="text-slate-400 text-xs leading-4 mb-3" numberOfLines={3}>
-                      {post.description}
-                    </Text>
-
-                    <View className="flex-row items-center pt-3 border-t border-white/5">
-                      <View className="bg-slate-800 px-3 py-1 rounded-full flex-row items-center">
-                        <Ionicons name="time-outline" size={10} color="#94a3b8" />
-                        <Text className="text-slate-400 text-[9px] ml-1 font-bold">
-                          {post.createdAt?.toDate().toLocaleDateString() || 'Recently'}
-                        </Text>
+                  <View>
+                 
+                    {locationGroup.slice(0, 5).map((item, index) => (
+                      <View key={item.id} className={`flex-row items-center py-2 ${index !== locationGroup.length - 1 ? 'border-b border-white/5' : ''}`}>
+                        <Image 
+                          source={{ uri: item.imageUrls?.[0] }} 
+                          className="w-10 h-10 rounded-lg bg-slate-800"
+                        />
+                        <View className="flex-1 ml-3">
+                          <Text className="text-white font-bold text-xs" numberOfLines={1}>{item.title}</Text>
+                          <Text className="text-slate-500 text-[9px] uppercase font-bold">
+                            {item.createdAt?.toDate ? 
+                              item.createdAt.toDate().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 
+                              'Just now'}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={12} color="#334155" />
                       </View>
-                    </View>
+                    ))}
+                    {count > 5 && (
+                      <Text className="text-slate-500 text-[9px] text-center mt-2 italic">+ {count - 5} more visits</Text>
+                    )}
                   </View>
                 </View>
               </Callout>
@@ -126,13 +143,20 @@ export default function MapScreen() {
         })}
       </MapView>
       
-     
+      {/*  FLOATING HEADER  */}
       <View className="absolute top-16 left-6 right-6">
-        <View className="bg-slate-900/90 p-5 rounded-[32px] border border-white/10 shadow-2xl backdrop-blur-md">
-          <Text className="text-white font-black text-xl tracking-tight italic">EXPLORER MAP</Text>
-          <Text className="text-emerald-400/80 text-xs font-medium uppercase tracking-widest">
-            {posts.length} MEMORIES PINNED
-          </Text>
+        <View className="bg-slate-900/95 p-5 rounded-[32px] border border-white/10 shadow-2xl backdrop-blur-xl">
+          <View className="flex-row justify-between items-center">
+            <View>
+              <Text className="text-white font-black text-xl italic tracking-tight">JOURNEY LOG</Text>
+              <Text className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest">
+                {posts.length} Check-ins • {groupedPosts.length} Locations
+              </Text>
+            </View>
+            <View className="bg-emerald-500/20 p-3 rounded-2xl">
+               <Ionicons name="map" size={20} color="#10b981" />
+            </View>
+          </View>
         </View>
       </View>
     </View>
@@ -144,17 +168,13 @@ const styles = StyleSheet.create({
     width: Dimensions.get('window').width,
     height: Dimensions.get('window').height,
   },
-  calloutImage: {
-    width: '100%',
-    height: 150,
-  },
   triangle: {
     width: 0,
     height: 0,
     backgroundColor: 'transparent',
     borderStyle: 'solid',
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
+    borderLeftWidth: 9,
+    borderRightWidth: 9,
     borderBottomWidth: 12,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',

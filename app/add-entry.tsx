@@ -38,7 +38,7 @@ export default function AddEntryScreen() {
   const [predictions, setPredictions] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // --- FREE Search Logic with Debounce (Prevents JSON Parse Error) ---
+  //   Search Logic 
   const fetchPredictions = (text: string) => {
     setLocationName(text);
     
@@ -56,7 +56,7 @@ export default function AddEntryScreen() {
         
         const response = await fetch(url, {
           headers: {
-            'User-Agent': 'TravelJournal_Mobile_App_v1', // Unique ID to avoid blocks
+            'User-Agent': 'TravelJournal_Mobile_App_v1',
           }
         });
 
@@ -72,7 +72,7 @@ export default function AddEntryScreen() {
       } finally {
         setIsSearching(false);
       }
-    }, 600); // 600ms delay: User must stop typing before we call the API
+    }, 600); 
   };
 
   const handleSelectLocation = (item: any) => {
@@ -84,7 +84,7 @@ export default function AddEntryScreen() {
     setPredictions([]); 
   };
 
-  // --- GPS Detection ---
+  //  GPS Detection 
   const handleDetectLocation = async () => {
     setLoading(true);
     let { status } = await Location.requestForegroundPermissionsAsync();
@@ -105,7 +105,7 @@ export default function AddEntryScreen() {
     setLoading(false);
   };
 
-  // --- Image Logic ---
+  //  Image Logic 
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') return Alert.alert("Denied", "Camera access needed.");
@@ -144,7 +144,7 @@ export default function AddEntryScreen() {
     } catch { return null; }
   };
 
-  // --- Save to Firestore ---
+  //  Save to Firestore 
   const handleSave = async () => {
     const user = auth.currentUser;
     if (!user) return Alert.alert("Auth Error", "Please log in.");
