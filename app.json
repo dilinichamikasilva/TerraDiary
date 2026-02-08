@@ -4,18 +4,20 @@
     "slug": "terra-diary",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.jpg",
+    "icon": "./assets/images/icon.png",
     "scheme": "terradiary",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dilini713.terradiary"
+      "bundleIdentifier": "com.dilini713.terradiary",
+      "userInterfaceStyle": "dark" 
+      
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0f172a",
-        "foregroundImage": "./assets/images/android-icon-foreground.png"
+        "foregroundImage": "./assets/images/adaptive-icon.png"
       },
       "package": "com.dilini713.terradiary",
       "edgeToEdgeEnabled": true,
@@ -23,19 +25,20 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.jpg"
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.jpg",
+          "image": "./assets/images/splash-icon.png",
           "imageWidth": 180,
           "resizeMode": "contain",
-          "backgroundColor": "#0f172a",
+          "backgroundColor": "#050505",
           "dark": {
-            "backgroundColor": "#0f172a"
+            "backgroundColor": "#050505",
+            "image": "./assets/images/splash-icon.png"
           }
         }
       ]
