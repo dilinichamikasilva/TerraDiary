@@ -55,7 +55,6 @@ export default function FeedScreen() {
 
   return (
     <View className="flex-1 bg-slate-950">
-      {/* Visual Accent */}
       <View className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px]" />
 
       <ScrollView 
