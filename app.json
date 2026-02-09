@@ -19,6 +19,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png"
       },
       "package": "com.dilini713.terradiary",
+      "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },

@@ -7,11 +7,17 @@ import {
 import { auth, db } from "./firebaseConfig";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { GoogleSignin} from "@react-native-google-signin/google-signin";
 
 // Email Login
 export const loginUser = async (email: string, password: string) => {
     return await signInWithEmailAndPassword(auth, email.trim(), password);
 };
+
+GoogleSignin.configure({
+    webClientId:process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    offlineAccess: true
+})
 
 
 export const registerUser = async (formData: any) => {
