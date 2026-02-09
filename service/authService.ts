@@ -1,27 +1,28 @@
 import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut,
-  User
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword, 
+    sendPasswordResetEmail, 
+    signOut,
+    User
 } from "firebase/auth";
 import { auth, db } from "./firebaseConfig";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Email Login
+//email login
 export const loginUser = async (email: string, password: string) => {
     return await signInWithEmailAndPassword(auth, email.trim(), password);
 };
 
-
+//user register
 export const registerUser = async (formData: any) => {
     const { email, password, firstName, lastName, country } = formData;
     
-    // Create the Auth User
+    
     const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
     const user = userCredential.user;
 
-    // Save to Firestore 
+    
     const userRef = doc(db, "users", user.uid);
     await setDoc(userRef, {
         firstName: firstName.trim(),
@@ -35,6 +36,7 @@ export const registerUser = async (formData: any) => {
 
     return user;
 };
+
 
 export const syncUserToFirestore = async (user: User) => {
     const userRef = doc(db, "users", user.uid);
@@ -51,7 +53,19 @@ export const syncUserToFirestore = async (user: User) => {
     }
 };
 
+// forgot pw
+export const resetPassword = async (email: string) => {
+    if (!email) throw new Error("Email is required to reset password.");
+    return await sendPasswordResetEmail(auth, email.trim());
+};
+
+//logout
 export const logoutUser = async () => {
-    await signOut(auth);
-    await AsyncStorage.clear();
+    try {
+        await signOut(auth);
+        await AsyncStorage.clear();
+    } catch (error) {
+        console.error("Logout Error:", error);
+        throw error;
+    }
 };
