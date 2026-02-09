@@ -11,8 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dilini713.terradiary",
-      "userInterfaceStyle": "dark" 
-      
+      "userInterfaceStyle": "dark"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,6 +19,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png"
       },
       "package": "com.dilini713.terradiary",
+      "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -42,11 +42,16 @@
           }
         }
       ]
-      
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "727a996a-cc8f-4073-adb5-efa31236db76"
+      }
     }
   }
 }
