@@ -3,7 +3,7 @@ import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestor
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Dimensions, Image, StyleSheet, Text, View, TouchableOpacity, Platform } from 'react-native';
 import MapView, { Callout, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { useRouter } from 'expo-router'; // Import router for AR navigation
+import { useRouter } from 'expo-router'; 
 import { mapStyle } from '../../constants/mapstyle';
 import { auth, db } from '../../service/firebaseConfig';
 import { TravelPost } from '../../types';
