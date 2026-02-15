@@ -34,7 +34,6 @@ export default function ARFinderScreen() {
       DeviceMotion.setUpdateInterval(40);
       motionSub = DeviceMotion.addListener((data) => {
         if (data.rotation) {
-          // alpha is the rotation around the z-axis (compass heading)
           let h = data.rotation.alpha * (180 / Math.PI);
           setHeading((h + 360) % 360);
         }
@@ -89,12 +88,11 @@ export default function ARFinderScreen() {
             Number(post.latitude), Number(post.longitude)
           );
 
-          // Calculate the relative angle between device heading and post bearing
           let diff = postBearing - heading;
           if (diff > 180) diff -= 360;
           if (diff < -180) diff += 360;
 
-          // Render only if marker is within the camera's visual cone
+        
           if (Math.abs(diff) < FIELD_OF_VIEW / 2) {
             const xPos = (width / 2) + (diff * (width / FIELD_OF_VIEW));
             const dist = calculateDistance(userLoc.latitude, userLoc.longitude, post.latitude, post.longitude);

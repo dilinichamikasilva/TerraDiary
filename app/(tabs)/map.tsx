@@ -3,7 +3,7 @@ import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestor
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Dimensions, Image, StyleSheet, Text, View, TouchableOpacity, Platform } from 'react-native';
 import MapView, { Callout, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { useRouter } from 'expo-router'; // Import router for AR navigation
+import { useRouter } from 'expo-router'; 
 import { mapStyle } from '../../constants/mapstyle';
 import { auth, db } from '../../service/firebaseConfig';
 import { TravelPost } from '../../types';
@@ -37,7 +37,7 @@ export default function MapScreen() {
     return unsubscribe;
   }, [currentUser]);
 
-  //  Grouping Logic: Combine posts by location 
+  //  Combine posts by location 
   const groupedPosts = useMemo(() => {
     const groups: { [key: string]: TravelPost[] } = {};
     posts.forEach(post => {
@@ -154,7 +154,6 @@ export default function MapScreen() {
 
       {/*  RIGHT SIDE ACTIONS  */}
       <View className="absolute bottom-32 right-6 space-y-4">
-        {/* AR SCANNER BUTTON */}
         <TouchableOpacity 
           onPress={() => router.push('/ar-finder')}
           activeOpacity={0.8}

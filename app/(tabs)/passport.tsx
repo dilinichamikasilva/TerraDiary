@@ -6,7 +6,6 @@ import { TravelPost } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 import { calculateDistance } from '../../utils/geoMath';
 
-// Import your new components
 import { StatCard, AchievementItem } from '../../components/PassportComponents';
 
 export default function PassportScreen() {

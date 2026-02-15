@@ -154,7 +154,6 @@ export default function LoginScreen() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View className="flex-1 bg-slate-950">
-        {/* Background Decorative Blurs */}
         <View className="absolute top-[-50] left-[-50] w-72 h-72 bg-emerald-500/10 rounded-full blur-[80px]" />
         <View className="absolute bottom-[-50] right-[-50] w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]" />
 
@@ -187,7 +186,7 @@ export default function LoginScreen() {
                   editable={!loading}
                 />
                 
-                {/* Password Input with Visibility Toggle */}
+                {/* Password Input  */}
                 <View className="relative mb-2">
                   <TextInput
                     className="bg-slate-800/50 p-4 rounded-2xl text-white border border-slate-700/50 pr-12"
